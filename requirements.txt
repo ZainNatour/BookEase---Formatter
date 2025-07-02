@@ -1,0 +1,9 @@
+# requirements.txt — paste & save
+pyautogui==0.9.54
+pywin32==306
+pygetwindow==0.0.9
+pyperclip>=1.8.2,<2.0
+keyboard==0.13.5
+pillow==10.3.0
+# pytesseract==0.3.10      # enable when you need OCR
+# pyinstaller==6.5.0       # enable when you package an EXE
