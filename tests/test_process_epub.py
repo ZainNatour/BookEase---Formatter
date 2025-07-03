@@ -16,6 +16,7 @@ pyperclip_stub = types.SimpleNamespace(copy=lambda *a, **k: None, paste=lambda: 
 sys.modules['pyautogui'] = pyautogui_stub
 sys.modules['pygetwindow'] = pygetwindow_stub
 sys.modules['pyperclip'] = pyperclip_stub
+sys.modules['language_tool_python'] = types.SimpleNamespace(LanguageTool=lambda *a, **k: types.SimpleNamespace(check=lambda *_: []))
 
 class DummySplitter:
     def __init__(self, chunk_size, chunk_overlap, separators):
@@ -108,7 +109,7 @@ def test_process_epub(tmp_path, monkeypatch):
     monkeypatch.setattr(process_epub, 'ChatGPTAutomation', DummyBot)
     from langchain.text_splitter import CharacterTextSplitter
     monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
-    monkeypatch.setattr(process_epub, 'ask_gpt', lambda bot, text: text.upper())
+    monkeypatch.setattr(process_epub, 'ask_gpt', lambda bot, text, tool: text.upper())
     monkeypatch.setattr(process_epub.subprocess, 'run', lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='', stderr=''))
 
     from click.testing import CliRunner
