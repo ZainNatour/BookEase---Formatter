@@ -16,6 +16,7 @@ sys.modules['pyautogui'] = pyautogui_stub
 
 import ui_capture
 from ui_capture import click_copy_icon
+import config
 
 
 def test_click_copy_icon_found(monkeypatch):
@@ -33,7 +34,7 @@ def test_click_copy_icon_found(monkeypatch):
     monkeypatch.setattr(pyautogui_stub, 'locateOnScreen', fake_locate)
     monkeypatch.setattr(pyautogui_stub, 'click', fake_click)
     monkeypatch.setattr(pyautogui_stub, 'moveTo', fake_move)
-    monkeypatch.setattr(ui_capture, '_TEMPLATE_PATHS', ['dummy'])
+    monkeypatch.setattr(config, 'copy_icon_templates', ['dummy'])
 
     result = click_copy_icon()
 
@@ -54,7 +55,7 @@ def test_click_copy_icon_not_found(monkeypatch):
     monkeypatch.setattr(pyautogui_stub, 'locateOnScreen', fake_locate)
     monkeypatch.setattr(pyautogui_stub, 'click', fake_click)
     monkeypatch.setattr(pyautogui_stub, 'moveTo', lambda *a, **k: called.__setitem__('moved', True))
-    monkeypatch.setattr(ui_capture, '_TEMPLATE_PATHS', ['dummy'])
+    monkeypatch.setattr(config, 'copy_icon_templates', ['dummy'])
 
     result = click_copy_icon()
 
