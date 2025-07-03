@@ -1,4 +1,25 @@
 import time, pyautogui as pag, pygetwindow as gw, pyperclip
+import subprocess, os, pathlib
+
+CHATGPT_EXE = pathlib.Path(
+    r"%LOCALAPPDATA%\Programs\ChatGPT\ChatGPT.exe"
+).expandvars()
+
+def _ensure_running(self, timeout: float = 10.0) -> None:
+    """Start ChatGPT Desktop if it isn’t already running."""
+    if gw.getWindowsWithTitle(self.window_title):
+        return
+    if not CHATGPT_EXE.exists():
+        raise FileNotFoundError(f"ChatGPT.exe not found at {CHATGPT_EXE}")
+    subprocess.Popen([str(CHATGPT_EXE)], stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, shell=False)
+    # Wait for window
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        if gw.getWindowsWithTitle(self.window_title):
+            return
+        time.sleep(0.5)
+    raise RuntimeError("ChatGPT window did not appear within timeout")
 
 class ChatGPTAutomation:
     def __init__(self, system_prompt: str, window_title="ChatGPT"):
@@ -22,5 +43,6 @@ class ChatGPTAutomation:
             pag.press("enter")
 
     def bootstrap(self):
+        self._ensure_running()        # ← NEW: make sure the app is up
         self._focus()
         self._paste(self.system_prompt, hit_enter=True)
