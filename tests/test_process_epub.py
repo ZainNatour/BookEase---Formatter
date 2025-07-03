@@ -29,7 +29,7 @@ class DummySplitter:
 def stub_from_tiktoken_encoder(chunk_size=1500, chunk_overlap=200, separators=None):
     return DummySplitter(chunk_size, chunk_overlap, separators or ['</p>'])
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.process_epub import main as cli
 import src.process_epub as process_epub
