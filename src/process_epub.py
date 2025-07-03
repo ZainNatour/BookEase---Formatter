@@ -2,6 +2,7 @@ import click
 import zipfile
 import subprocess
 from pathlib import Path
+import json
 
 from utils.chunking import split_text
 from src.automation import ChatGPTAutomation, read_response
@@ -33,6 +34,13 @@ def main(input_path: str, output_path: str) -> None:
     filenames: list[str] = []
     contents: dict[str, bytes] = {}
 
+    progress_path = Path(output_path).with_suffix('.progress.json')
+    if progress_path.exists():
+        with open(progress_path, 'r') as f:
+            progress: dict[str, list[int]] = json.load(f)
+    else:
+        progress = {}
+
     with zipfile.ZipFile(input_path, 'r') as zin:
         for info in zin.infolist():
             name = info.filename
@@ -42,8 +50,16 @@ def main(input_path: str, output_path: str) -> None:
             if ext in {'.xhtml', '.opf', '.ncx', '.css'}:
                 text = data.decode('utf-8')
                 new_parts = []
-                for chunk in split_text(text):
+                done = set(progress.get(name, []))
+                for idx, chunk in enumerate(split_text(text)):
+                    if idx in done:
+                        new_parts.append(chunk)
+                        continue
                     new_parts.append(ask_gpt(bot, chunk, tool))
+                    done.add(idx)
+                    progress[name] = sorted(done)
+                    with open(progress_path, 'w') as f:
+                        json.dump(progress, f)
                 text = ''.join(new_parts)
                 data = text.encode('utf-8')
             contents[name] = data
@@ -58,6 +74,9 @@ def main(input_path: str, output_path: str) -> None:
     result = subprocess.run(['epubcheck', output_path], capture_output=True, text=True)
     if result.returncode != 0:
         raise SystemExit(result.stdout + result.stderr)
+
+    if progress_path.exists():
+        progress_path.unlink()
 
 
 if __name__ == '__main__':

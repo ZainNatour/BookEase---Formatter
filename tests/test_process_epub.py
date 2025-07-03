@@ -2,6 +2,7 @@ import os
 import sys
 import types
 import zipfile
+import json
 from pathlib import Path
 
 # Stub GUI libraries before importing the module under test
@@ -120,3 +121,58 @@ def test_process_epub(tmp_path, monkeypatch):
     with zipfile.ZipFile(out_path, 'r') as z:
         text = z.read('OEBPS/chapter.xhtml').decode('utf-8')
     assert text == '<HTML><BODY><P>HELLO WORLD.</P></BODY></HTML>'
+
+
+def test_resume(tmp_path, monkeypatch):
+    in_path = tmp_path / "sample.epub"
+    out_path = tmp_path / "out.epub"
+    create_sample_epub(in_path)
+
+    progress_path = out_path.with_suffix('.progress.json')
+
+    monkeypatch.setattr(process_epub, 'ChatGPTAutomation', DummyBot)
+    monkeypatch.setattr(process_epub.subprocess, 'run', lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='', stderr=''))
+
+    # Only split chapter.xhtml
+    def split_conditional(txt):
+        if txt.startswith('<html'):
+            return [txt[:10], txt[10:]]
+        return [txt]
+
+    monkeypatch.setattr(process_epub, 'split_text', split_conditional)
+
+    calls = []
+
+    def crash_gpt(bot, text, tool):
+        calls.append(text)
+        if len(calls) == 4:
+            raise RuntimeError('boom')
+        return text.upper()
+
+    from langchain.text_splitter import CharacterTextSplitter
+    monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
+
+    monkeypatch.setattr(process_epub, 'ask_gpt', crash_gpt)
+
+    from click.testing import CliRunner
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--input', str(in_path), '--output', str(out_path)])
+    assert result.exit_code != 0
+    assert progress_path.exists()
+    with open(progress_path) as f:
+        progress = json.load(f)
+    assert progress.get('OEBPS/chapter.xhtml') == [0]
+
+    calls.clear()
+    count = {'n': 0}
+
+    def resume_gpt(bot, text, tool):
+        count['n'] += 1
+        return text.upper()
+
+    monkeypatch.setattr(process_epub, 'ask_gpt', resume_gpt)
+
+    result = runner.invoke(cli, ['--input', str(in_path), '--output', str(out_path)])
+    assert result.exit_code == 0
+    assert not progress_path.exists()
+    assert count['n'] == 2
