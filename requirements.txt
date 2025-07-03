@@ -1,9 +1,16 @@
-# requirements.txt — paste & save
+# core cross-platform libs
 pyautogui==0.9.54
-pywin32==306
 pygetwindow==0.0.9
 pyperclip>=1.8.2,<2.0
 keyboard==0.13.5
 pillow==10.3.0
-# pytesseract==0.3.10      # enable when you need OCR
-# pyinstaller==6.5.0       # enable when you package an EXE
+
+# Windows-only automation DLLs
+pywin32==306 ; sys_platform == "win32"           # skips on Linux  :contentReference[oaicite:2]{index=2}
+
+# Linux-only helpers so PyAutoGUI imports cleanly
+python-xlib>=0.33 ; sys_platform != "win32"      # no effect on Windows  :contentReference[oaicite:3]{index=3}
+
+# optional extras
+# pytesseract==0.3.10
+# pyinstaller==6.5.0
