@@ -2,7 +2,10 @@ import pyautogui
 from typing import Optional, Tuple
 
 # Placeholder: in the future, read template paths from config.yml
-_TEMPLATE_PATHS = []  # TODO: populate from config.yml
+_TEMPLATE_PATHS = [
+    "assets/icons/copy_light.png",
+    "assets/icons/copy_dark.png",
+]
 
 
 def locate_copy_icon(region=None) -> Optional[Tuple[int, int, int, int]]:
