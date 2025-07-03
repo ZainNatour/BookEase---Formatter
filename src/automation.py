@@ -5,10 +5,15 @@ class ChatGPTAutomation:
         self.system_prompt = system_prompt
         self.window_title = window_title
 
-    def _focus(self):
-        win = gw.getWindowsWithTitle(self.window_title)[0]
+    def _focus(self) -> None:
+        wins = gw.getWindowsWithTitle(self.window_title)
+        if not wins:
+            raise RuntimeError(f"ChatGPT window titled '{self.window_title}' not found. "
+                            "Start the desktop app and try again.")
+        win = wins[0]
         win.activate()
         time.sleep(0.2)
+
 
     def _paste(self, text: str, hit_enter=False):
         pyperclip.copy(text)
