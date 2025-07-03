@@ -1,30 +1,36 @@
 import time, pyautogui as pag, pygetwindow as gw, pyperclip
 import subprocess, os, pathlib
 
+# Determine the location of the ChatGPT desktop executable. ``pathlib.Path``
+# does not provide ``expandvars`` like ``os.path`` does, so we expand the
+# environment variables in the string first and then create a ``Path`` object.
 CHATGPT_EXE = pathlib.Path(
-    r"%LOCALAPPDATA%\Programs\ChatGPT\ChatGPT.exe"
-).expandvars()
+    os.path.expandvars(r"%LOCALAPPDATA%\Programs\ChatGPT\ChatGPT.exe")
+)
 
-def _ensure_running(self, timeout: float = 10.0) -> None:
-    """Start ChatGPT Desktop if it isn’t already running."""
-    if gw.getWindowsWithTitle(self.window_title):
-        return
-    if not CHATGPT_EXE.exists():
-        raise FileNotFoundError(f"ChatGPT.exe not found at {CHATGPT_EXE}")
-    subprocess.Popen([str(CHATGPT_EXE)], stdout=subprocess.DEVNULL,
-                     stderr=subprocess.DEVNULL, shell=False)
-    # Wait for window
-    t0 = time.time()
-    while time.time() - t0 < timeout:
-        if gw.getWindowsWithTitle(self.window_title):
-            return
-        time.sleep(0.5)
-    raise RuntimeError("ChatGPT window did not appear within timeout")
 
 class ChatGPTAutomation:
     def __init__(self, system_prompt: str, window_title="ChatGPT"):
         self.system_prompt = system_prompt
         self.window_title = window_title
+
+    def _ensure_running(self, timeout: float = 10.0) -> None:
+        """Start ChatGPT Desktop if it isn't already running."""
+        if gw.getWindowsWithTitle(self.window_title):
+            return
+        if not CHATGPT_EXE.exists():
+            raise FileNotFoundError(f"ChatGPT.exe not found at {CHATGPT_EXE}")
+        subprocess.Popen(
+            [str(CHATGPT_EXE)], stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, shell=False
+        )
+        # Wait for window to appear
+        t0 = time.time()
+        while time.time() - t0 < timeout:
+            if gw.getWindowsWithTitle(self.window_title):
+                return
+            time.sleep(0.5)
+        raise RuntimeError("ChatGPT window did not appear within timeout")
 
     def _focus(self) -> None:
         wins = gw.getWindowsWithTitle(self.window_title)
