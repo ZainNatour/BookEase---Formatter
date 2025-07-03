@@ -1,3 +1,4 @@
 -e ".venv/\n__pycache__/\n*.pyc" 
 -e "\n# Python cache\n__pycache__/\n*.pyc" 
 \n__pycache__/\n*.pyc\n
+src/__pycache__/
