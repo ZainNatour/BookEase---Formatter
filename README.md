@@ -1,16 +1,41 @@
-.venv/
-__pycache__/
-*.pyc
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
+# BookEase Formatter
+
+[![CI](https://github.com/<owner>/BookEase---Formatter/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/BookEase---Formatter/actions/workflows/ci.yml)
+
+BookEase Formatter uses ChatGPT to proofread and clean up EPUB files.
+
+## Quick start
+1. Create a virtual environment and activate it:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows use .venv\Scripts\activate
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Run the formatter:
+   ```bash
+   python -m src.main
+   ```
 
 ## Usage
 
-Run `python -m src.main` to start the formatter.
+### Hot keys
+| Shortcut | Action |
+|----------|--------|
+| **Ctrl+Shift+E** | Choose an EPUB and output location |
+| **Ctrl+Shift+Q** | Exit the application |
+### Adding new EPUBs
 
-- **Ctrl+Shift+E** opens a file dialog to select an EPUB and an output
-  location. The chosen book is processed using ChatGPT and saved to the
-  specified file.
-- **Ctrl+Shift+Q** exits the application.
+Press **Ctrl+Shift+E** while the app is running and pick your EPUB.
+You can also run the CLI directly:
+```bash
+python -m src.process_epub --input mybook.epub --output cleaned.epub
+```
+
+## Development workflow
+1. Take or open a Codex task for the change you want to make.
+2. Run `git pull` to ensure `main` is up to date.
+3. Commit your changes on the `main` branch.
+4. `git push` to run the CI tests and open a PR.
