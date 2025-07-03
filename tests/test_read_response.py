@@ -65,3 +65,23 @@ def test_read_response_fallback_success(monkeypatch):
     assert result == 'fallback text'
     assert hotkeys == [('ctrl', 'a'), ('ctrl', 'c')]
 
+
+def test_read_response_error_logs(monkeypatch, capsys):
+    hotkeys.clear()
+
+    def raise_error():
+        raise RuntimeError('fail')
+
+    ui_stub = types.SimpleNamespace(click_copy_icon=raise_error)
+    monkeypatch.setitem(sys.modules, 'ui_capture', ui_stub)
+
+    paste_values = ['fallback text']
+    monkeypatch.setattr(pyperclip_stub, 'paste', lambda: paste_values.pop(0))
+
+    result = automation.read_response(verbose=True)
+
+    assert result == 'fallback text'
+    assert hotkeys == [('ctrl', 'a'), ('ctrl', 'c')]
+    captured = capsys.readouterr()
+    assert 'fail' in captured.err
+

@@ -1,5 +1,5 @@
 import time, pyautogui as pag, pygetwindow as gw, pyperclip
-import subprocess, os, pathlib
+import subprocess, os, pathlib, sys
 
 # Determine the location of the ChatGPT desktop executable. ``pathlib.Path``
 # does not provide ``expandvars`` like ``os.path`` does, so we expand the
@@ -73,18 +73,20 @@ def wait_until_typing_stops(bbox=(1150, 850, 50, 20), timeout=30):
     raise RuntimeError("Timed out waiting for typing to stop")
 
 
-def read_response():
+def read_response(verbose: bool = False):
     """Retrieve the assistant's response from the ChatGPT Desktop UI."""
     wait_until_typing_stops()
 
+    text = ""
     try:
         import ui_capture
 
         ui_capture.click_copy_icon()
-    except Exception:
-        pass
+        text = pyperclip.paste()
+    except Exception as e:
+        if verbose:
+            print(f"Failed to read clipboard via copy icon: {e}", file=sys.stderr)
 
-    text = pyperclip.paste()
     if not text:
         pag.hotkey("ctrl", "a")
         pag.hotkey("ctrl", "c")
