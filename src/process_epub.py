@@ -5,12 +5,21 @@ from pathlib import Path
 
 from utils.chunking import split_text
 from src.automation import ChatGPTAutomation, read_response
+import language_tool_python
 
 
-def ask_gpt(bot: ChatGPTAutomation, text: str) -> str:
-    bot._focus()
-    bot._paste(text, hit_enter=True)
-    return read_response()
+def ask_gpt(bot: ChatGPTAutomation, text: str, tool: language_tool_python.LanguageTool) -> str:
+    """Send ``text`` to ChatGPT and validate the response with LanguageTool."""
+    for attempt in range(2):
+        bot._focus()
+        bot._paste(text, hit_enter=True)
+        reply = read_response()
+        matches = tool.check(reply)
+        if len(matches) > 3:
+            if attempt == 0:
+                continue
+            raise RuntimeError("Too many language issues in reply")
+        return reply
 
 
 @click.command()
@@ -19,6 +28,7 @@ def ask_gpt(bot: ChatGPTAutomation, text: str) -> str:
 def main(input_path: str, output_path: str) -> None:
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()
+    tool = language_tool_python.LanguageTool("en-US")
 
     filenames: list[str] = []
     contents: dict[str, bytes] = {}
@@ -33,7 +43,7 @@ def main(input_path: str, output_path: str) -> None:
                 text = data.decode('utf-8')
                 new_parts = []
                 for chunk in split_text(text):
-                    new_parts.append(ask_gpt(bot, chunk))
+                    new_parts.append(ask_gpt(bot, chunk, tool))
                 text = ''.join(new_parts)
                 data = text.encode('utf-8')
             contents[name] = data
