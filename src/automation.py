@@ -63,12 +63,17 @@ def wait_until_typing_stops(bbox=(1150, 850, 50, 20), timeout=30):
     seconds.
     """
     last = pag.screenshot(region=bbox).tobytes()
+    same_count = 0
     t0 = time.time()
     while time.time() - t0 < timeout:
         time.sleep(0.5)
         current = pag.screenshot(region=bbox).tobytes()
         if current == last:
-            return
+            same_count += 1
+            if same_count == 2:
+                return
+        else:
+            same_count = 0
         last = current
     raise RuntimeError("Timed out waiting for typing to stop")
 
