@@ -106,6 +106,84 @@ def test_focus(monkeypatch):
     assert bot.window is win
 
 
+def test_focus_restores_minimized(monkeypatch):
+    import automation
+    monkeypatch.setattr(automation, 'pag', pyautogui_stub)
+    monkeypatch.setattr(automation, 'gw', pygetwindow_stub)
+    monkeypatch.setattr(automation, 'pyperclip', pyperclip_stub)
+    monkeypatch.setattr(automation.time, 'sleep', lambda *a, **k: None)
+    calls = {'activate': 0, 'restore': 0}
+
+    class FakeWin:
+        def __init__(self):
+            self.title = 'ChatGPT'
+            self.minimized = True
+
+        def activate(self):
+            calls['activate'] += 1
+
+        @property
+        def isMinimized(self):
+            return self.minimized
+
+        def restore(self):
+            calls['restore'] += 1
+            self.minimized = False
+
+    win = FakeWin()
+    monkeypatch.setattr(pygetwindow_stub, 'getAllWindows', lambda: [win])
+    bot = automation.ChatGPTAutomation('prompt')
+    bot.window = win
+    bot._focus()
+
+    assert calls['restore'] == 1
+    assert calls['activate'] == 1
+    assert bot.window is win
+
+
+def test_focus_recovers_missing(monkeypatch):
+    import automation
+    monkeypatch.setattr(automation, 'pag', pyautogui_stub)
+    monkeypatch.setattr(automation, 'gw', pygetwindow_stub)
+    monkeypatch.setattr(automation, 'pyperclip', pyperclip_stub)
+    monkeypatch.setattr(automation.time, 'sleep', lambda *a, **k: None)
+    calls = {'activate': 0}
+
+    class FakeWin:
+        def __init__(self, title='ChatGPT'):
+            self.title = title
+
+        def activate(self):
+            calls['activate'] += 1
+
+        @property
+        def isMinimized(self):
+            return False
+
+        def restore(self):
+            pass
+
+    old_win = FakeWin('Old')
+    new_win = FakeWin()
+    windows = [[], [new_win]]
+
+    def fake_get_all():
+        res = windows[0]
+        if len(windows) > 1:
+            windows.pop(0)
+        return res
+
+    monkeypatch.setattr(pygetwindow_stub, 'getAllWindows', fake_get_all)
+    monkeypatch.setattr(automation.ChatGPTAutomation, '_ensure_running', lambda self, timeout=10.0: new_win)
+
+    bot = automation.ChatGPTAutomation('prompt')
+    bot.window = old_win
+    bot._focus()
+
+    assert calls['activate'] == 1
+    assert bot.window is new_win
+
+
 
 def test_paste(monkeypatch):
     import automation
