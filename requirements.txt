@@ -19,3 +19,7 @@ tiktoken>=0.6.0
 click>=8.0
 language-tool-python>=2.9.4
 pyyaml>=6.0
+
+# --- testing ---
+pytest>=7.4
+pytest-mock>=3.11        # optional helper plugin
