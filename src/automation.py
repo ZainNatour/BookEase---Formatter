@@ -2,8 +2,6 @@ import time, pyautogui as pag, pygetwindow as gw, pyperclip
 import subprocess, os, pathlib, sys, re
 import logging
 
-logging.basicConfig(level=logging.INFO)
-
 # Determine the location of the ChatGPT desktop executable.
 # ``pathlib.Path`` does not provide ``expandvars`` like ``os.path`` does, so we
 # expand the environment variables in the string first and then create a

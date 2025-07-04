@@ -73,6 +73,7 @@ def ask_gpt(
               help='Maximum consecutive read_response failures before giving up')
 def main(input_path: str, output_path: str, max_language_failures: int,
          max_read_failures: int) -> None:
+    logging.basicConfig(level=logging.INFO)
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()
     bot._paste(prompt_factory.build_system_prompt(), hit_enter=True)
