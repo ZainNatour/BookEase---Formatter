@@ -49,7 +49,9 @@ Once detected, the window handle is reused so changing the title later will not
 interrupt automation.
 
 BookEase will automatically start ChatGPT Desktop if it's not already
-running, so you can safely close the app between runs.
+running. If the ChatGPT window is closed or even just minimised, it will be
+restored or relaunched automatically when needed, so you can safely close the
+app between runs.
 
 ## Development workflow
 1. Take or open a Codex task for the change you want to make.

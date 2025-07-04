@@ -63,10 +63,12 @@ class ChatGPTAutomation:
             time.sleep(0.5)
         raise RuntimeError("ChatGPT window did not appear within timeout")
 
-    def _focus(self) -> None:
+    def _focus(self, timeout: float = 10.0) -> None:
         """Focus the ChatGPT window, starting the app if necessary."""
         if self.window and self.window in gw.getAllWindows():
             try:
+                if getattr(self.window, "isMinimized", False):
+                    self.window.restore()
                 self.window.activate()
                 time.sleep(0.2)
                 return
@@ -75,8 +77,10 @@ class ChatGPTAutomation:
 
         win = self._find_window()
         if not win:
-            win = self._ensure_running()
+            win = self._ensure_running(timeout)
         self.window = win
+        if getattr(self.window, "isMinimized", False):
+            self.window.restore()
         self.window.activate()
         time.sleep(0.2)
 
