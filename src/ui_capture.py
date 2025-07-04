@@ -3,9 +3,6 @@ from typing import Optional, Tuple
 
 from src import config
 
-# Trigger config loading and retain for backward compatibility
-_TEMPLATE_PATHS = config.get_copy_icons()
-
 
 def locate_copy_icon(region=None) -> Optional[Tuple[int, int, int, int]]:
     """Locate the ChatGPT Desktop Copy button on screen.
@@ -20,7 +17,7 @@ def locate_copy_icon(region=None) -> Optional[Tuple[int, int, int, int]]:
     tuple or None
         Bounding box of the located icon or None if not found.
     """
-    for path in config.copy_icon_templates:
+    for path in config.load_config().get("copy_icon_templates", []):
         box = pyautogui.locateOnScreen(path, region=region)
         if box:
             return box
