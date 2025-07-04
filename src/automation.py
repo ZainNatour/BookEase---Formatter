@@ -1,5 +1,5 @@
 import time, pyautogui as pag, pygetwindow as gw, pyperclip
-import subprocess, os, pathlib
+import subprocess, os, pathlib, sys
 
 # Determine the location of the ChatGPT desktop executable. ``pathlib.Path``
 # does not provide ``expandvars`` like ``os.path`` does, so we expand the
@@ -52,3 +52,52 @@ class ChatGPTAutomation:
         self._ensure_running()        # ← NEW: make sure the app is up
         self._focus()
         self._paste(self.system_prompt, hit_enter=True)
+
+
+def wait_until_typing_stops(bbox=(1150, 850, 50, 20), timeout=30):
+    """Return when text generation finishes by monitoring a screen region.
+
+    A small rectangle of the ChatGPT window is repeatedly captured. When two
+    consecutive screenshots are identical, typing is assumed to have stopped.
+    ``RuntimeError`` is raised if this doesn't happen within ``timeout``
+    seconds.
+    """
+    last = pag.screenshot(region=bbox).tobytes()
+    same_count = 0
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        time.sleep(0.5)
+        current = pag.screenshot(region=bbox).tobytes()
+        if current == last:
+            same_count += 1
+            if same_count == 2:
+                return
+        else:
+            same_count = 0
+        last = current
+    raise RuntimeError("Timed out waiting for typing to stop")
+
+
+def read_response(verbose: bool = False):
+    """Retrieve the assistant's response from the ChatGPT Desktop UI."""
+    wait_until_typing_stops()
+
+    text = ""
+    try:
+        import ui_capture
+
+        ui_capture.click_copy_icon()
+        text = pyperclip.paste()
+    except Exception as e:
+        if verbose:
+            print(f"Failed to read clipboard via copy icon: {e}", file=sys.stderr)
+
+    if not text:
+        pag.hotkey("ctrl", "a")
+        pag.hotkey("ctrl", "c")
+        text = pyperclip.paste()
+
+    if not text:
+        raise RuntimeError("Clipboard did not contain any text")
+
+    return text
