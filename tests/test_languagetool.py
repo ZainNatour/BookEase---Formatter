@@ -31,7 +31,7 @@ def test_retry_success(monkeypatch):
     responses = ['bad text', 'good text']
     monkeypatch.setattr(process_epub, 'read_response', lambda: responses.pop(0))
     tool = types.SimpleNamespace(check=lambda txt: [1, 2, 3, 4] if txt == 'bad text' else [])
-    result = process_epub.ask_gpt(bot, 'prompt', tool)
+    result = process_epub.ask_gpt(bot, 'file', 1, 1, 'prompt', tool)
     assert result == 'good text'
     assert len(bot.calls) == 4  # focus/paste twice
 
@@ -42,4 +42,4 @@ def test_retry_failure(monkeypatch):
     monkeypatch.setattr(process_epub, 'read_response', lambda: responses.pop(0))
     tool = types.SimpleNamespace(check=lambda txt: [1] * 4)
     with pytest.raises(RuntimeError):
-        process_epub.ask_gpt(bot, 'prompt', tool)
+        process_epub.ask_gpt(bot, 'file', 1, 1, 'prompt', tool)

@@ -105,9 +105,9 @@ def test_chunk_count(tmp_path, monkeypatch):
     monkeypatch.setattr(process_epub, 'split_text', stub_split)
 
     calls = []
-    def record(bot, text, tool):
-        calls.append(text)
-        return text
+    def record(bot, path, idx, total, chunk, tool):
+        calls.append(chunk)
+        return chunk
     monkeypatch.setattr(process_epub, 'ask_gpt', record)
 
     from click.testing import CliRunner

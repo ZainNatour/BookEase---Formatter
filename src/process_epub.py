@@ -4,16 +4,26 @@ import subprocess
 from pathlib import Path
 import json
 
+from src import prompt_factory
+
 from utils.chunking import split_text
 from src.automation import ChatGPTAutomation, read_response
 import language_tool_python
 
 
-def ask_gpt(bot: ChatGPTAutomation, text: str, tool: language_tool_python.LanguageTool) -> str:
-    """Send ``text`` to ChatGPT and validate the response with LanguageTool."""
+def ask_gpt(
+    bot: ChatGPTAutomation,
+    file_path: str,
+    chunk_id: int,
+    total: int,
+    chunk: str,
+    tool: language_tool_python.LanguageTool,
+) -> str:
+    """Send a chunk to ChatGPT and validate the response with LanguageTool."""
     for attempt in range(2):
         bot._focus()
-        bot._paste(text, hit_enter=True)
+        user_msg = prompt_factory.build_user_prompt(file_path, chunk_id, total, chunk)
+        bot._paste(user_msg, hit_enter=True)
         reply = read_response()
         matches = tool.check(reply)
         if len(matches) > 3:
@@ -29,6 +39,7 @@ def ask_gpt(bot: ChatGPTAutomation, text: str, tool: language_tool_python.Langua
 def main(input_path: str, output_path: str) -> None:
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()
+    bot._paste(prompt_factory.build_system_prompt(), hit_enter=True)
     tool = language_tool_python.LanguageTool("en-US")
 
     filenames: list[str] = []
@@ -51,11 +62,13 @@ def main(input_path: str, output_path: str) -> None:
                 text = data.decode('utf-8')
                 new_parts = []
                 done = set(progress.get(name, []))
-                for idx, chunk in enumerate(split_text(text)):
+                chunks = list(split_text(text))
+                total = len(chunks)
+                for idx, chunk in enumerate(chunks):
                     if idx in done:
                         new_parts.append(chunk)
                         continue
-                    new_parts.append(ask_gpt(bot, chunk, tool))
+                    new_parts.append(ask_gpt(bot, name, idx + 1, total, chunk, tool))
                     done.add(idx)
                     progress[name] = sorted(done)
                     with open(progress_path, 'w') as f:
