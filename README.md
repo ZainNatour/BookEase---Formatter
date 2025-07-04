@@ -43,6 +43,9 @@ with the following variables:
 - `CHATGPT_EXE` – full path to `ChatGPT.exe`.
 - `CHATGPT_WINDOW_TITLE` – title of the ChatGPT window to focus on.
 
+BookEase will automatically start ChatGPT Desktop if it's not already
+running, so you can safely close the app between runs.
+
 ## Development workflow
 1. Take or open a Codex task for the change you want to make.
 2. Run `git pull` to ensure `main` is up to date.
