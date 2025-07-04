@@ -1,6 +1,6 @@
 # BookEase Formatter
 
-[![CI](https://github.com/<owner>/BookEase---Formatter/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/BookEase---Formatter/actions/workflows/ci.yml)
+[![CI](https://github.com/ZainNatour/BookEase---Formatter/actions/workflows/ci.yml/badge.svg)](https://github.com/ZainNatour/BookEase---Formatter/actions/workflows/ci.yml)
 
 BookEase Formatter uses ChatGPT to proofread and clean up EPUB files.
 
