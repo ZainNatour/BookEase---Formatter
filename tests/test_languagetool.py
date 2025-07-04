@@ -87,3 +87,21 @@ def test_language_failures_capped(monkeypatch):
         bot, 'file', 1, 1, 'prompt', tool, max_language_failures=1
     )
     assert result == 'bad'
+
+
+def test_read_failures_capped(monkeypatch):
+    bot = DummyBot()
+    count = {'n': 0}
+
+    def always_fail():
+        count['n'] += 1
+        raise RuntimeError('no clip')
+
+    monkeypatch.setattr(process_epub, 'read_response', always_fail)
+    tool = types.SimpleNamespace(check=lambda txt: [])
+    result = process_epub.ask_gpt(
+        bot, 'file', 1, 1, 'prompt', tool, max_read_failures=2
+    )
+    assert result == ''
+    assert count['n'] == 2
+    assert len(bot.calls) == 4

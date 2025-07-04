@@ -21,9 +21,11 @@ def ask_gpt(
     tool: language_tool_python.LanguageTool,
     focus_retries: int = 3,
     max_language_failures: int = 2,
+    max_read_failures: int = 5,
 ) -> str:
     """Send a chunk to ChatGPT and validate the response with LanguageTool."""
     language_failures = 0
+    read_failures = 0
     last_reply = ""
     while True:
         for attempt in range(focus_retries):
@@ -39,9 +41,15 @@ def ask_gpt(
         try:
             reply = read_response()
         except RuntimeError:
+            read_failures += 1
+            if read_failures >= max_read_failures:
+                logging.warning("Too many read_response failures")
+                return last_reply
             # Retry the prompt if clipboard retrieval failed
             continue
 
+        read_failures = 0
+        
         last_reply = reply
 
         matches = tool.check(reply)
@@ -61,7 +69,10 @@ def ask_gpt(
 @click.option('--ignore-language-issues', '--max-language-failures',
               'max_language_failures', type=int, default=2, show_default=True,
               help='Maximum LanguageTool failures before accepting the reply')
-def main(input_path: str, output_path: str, max_language_failures: int) -> None:
+@click.option('--max-read-failures', type=int, default=5, show_default=True,
+              help='Maximum consecutive read_response failures before giving up')
+def main(input_path: str, output_path: str, max_language_failures: int,
+         max_read_failures: int) -> None:
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()
     bot._paste(prompt_factory.build_system_prompt(), hit_enter=True)
@@ -102,6 +113,7 @@ def main(input_path: str, output_path: str, max_language_failures: int) -> None:
                             chunk,
                             tool,
                             max_language_failures=max_language_failures,
+                            max_read_failures=max_read_failures,
                         )
                     )
                     done.add(idx)
