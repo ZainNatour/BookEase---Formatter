@@ -51,6 +51,22 @@ def test_html_paragraph_split(monkeypatch):
     assert chunks[1].strip() == "<p>two</p>"
 
 
+def test_nested_and_uppercase_tags(monkeypatch):
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    monkeypatch.setattr(
+        RecursiveCharacterTextSplitter,
+        "from_tiktoken_encoder",
+        stub_from_tiktoken_encoder,
+    )
+
+    text = "<P>ONE <b>two <i>THREE</i></b></P><p>four</p>"
+    chunks = split_text(text, size=100, overlap=0)
+
+    assert chunks[0].strip() == "<P>ONE <b>two <i>THREE</i></b></P>"
+    assert chunks[1].strip() == "<p>four</p>"
+
+
 def test_overlap(monkeypatch):
     from langchain_text_splitters import RecursiveCharacterTextSplitter
 

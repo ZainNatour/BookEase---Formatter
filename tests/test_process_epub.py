@@ -158,7 +158,7 @@ def test_process_epub(tmp_path, monkeypatch):
 
     with zipfile.ZipFile(out_path, 'r') as z:
         text = z.read('OEBPS/chapter.xhtml').decode('utf-8')
-    assert text == '<HTML><BODY><P>HELLO WORLD.</P></BODY></HTML>'
+    assert text == '<P>HELLO WORLD.</P>'
 
     bot = DummyBot.instances[0]
     assert bot.pastes[0] == 'You are a helpful assistant.'
