@@ -41,6 +41,12 @@ You can increase the tolerance for LanguageTool warnings with
 python -m src.process_epub --input mybook.epub --output cleaned.epub \
     --max-language-failures 5
 ```
+Similarly, you can cap the number of consecutive clipboard read failures with
+`--max-read-failures`:
+```bash
+python -m src.process_epub --input mybook.epub --output cleaned.epub \
+    --max-read-failures 3
+```
 
 ### Environment variables
 
