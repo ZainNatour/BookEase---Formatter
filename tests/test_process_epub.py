@@ -265,3 +265,40 @@ def test_focus_retry_failure(monkeypatch):
         process_epub.ask_gpt(bot, 'f', 1, 1, 'chunk', tool, focus_retries=2)
     assert bot.calls.count('focus') == 2
     assert all(c[0] != 'paste' for c in bot.calls if isinstance(c, tuple))
+
+
+def test_epubcheck_missing(tmp_path, monkeypatch):
+    in_path = tmp_path / "sample.epub"
+    out_path = tmp_path / "out.epub"
+    create_sample_epub(in_path)
+
+    DummyBot.instances.clear()
+    monkeypatch.setattr(process_epub, 'ChatGPTAutomation', DummyBot)
+    from langchain.text_splitter import CharacterTextSplitter
+    monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
+
+    monkeypatch.setattr(
+        process_epub,
+        'prompt_factory',
+        types.SimpleNamespace(
+            build_system_prompt=lambda: 'SYS',
+            build_user_prompt=lambda *a, **k: 'USER',
+        ),
+    )
+
+    monkeypatch.setattr(
+        process_epub,
+        'read_response',
+        lambda: DummyBot.instances[-1].last.upper(),
+    )
+
+    def raise_fnf(*a, **k):
+        raise FileNotFoundError
+
+    monkeypatch.setattr(process_epub.subprocess, 'run', raise_fnf)
+
+    from click.testing import CliRunner
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--input', str(in_path), '--output', str(out_path)])
+    assert result.exit_code != 0
+    assert 'epubcheck executable not found' in result.output.lower()

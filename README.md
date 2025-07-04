@@ -14,7 +14,9 @@ BookEase Formatter uses ChatGPT to proofread and clean up EPUB files.
    ```bash
    pip install -r requirements.txt
    ```
-3. Run the formatter:
+3. Install [epubcheck](https://github.com/w3c/epubcheck) and ensure the
+   `epubcheck` command is on your PATH.
+4. Run the formatter:
    ```bash
    python -m src.main
    ```
