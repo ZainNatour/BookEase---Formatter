@@ -1,5 +1,5 @@
 import time, pyautogui as pag, pygetwindow as gw, pyperclip
-import subprocess, os, pathlib, sys
+import subprocess, os, pathlib, sys, re
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -28,11 +28,26 @@ class ChatGPTAutomation:
     def __init__(self, system_prompt: str, window_title: str = DEFAULT_WINDOW_TITLE):
         self.system_prompt = system_prompt
         self.window_title = window_title
+        self._title_re = re.compile(window_title, re.I)
+        self.window = None
 
-    def _ensure_running(self, timeout: float = 10.0) -> None:
-        """Start ChatGPT Desktop if it isn't already running."""
-        if gw.getWindowsWithTitle(self.window_title):
-            return
+    def _find_window(self):
+        """Return the first window matching ``self.window_title``."""
+        for win in gw.getAllWindows():
+            try:
+                if self._title_re.search(win.title):
+                    return win
+            except Exception:
+                continue
+        return None
+
+    def _ensure_running(self, timeout: float = 10.0):
+        """Start ChatGPT Desktop if it isn't already running.
+
+        Returns the window handle once it appears."""
+        win = self._find_window()
+        if win:
+            return win
         if not CHATGPT_EXE.exists():
             raise FileNotFoundError(f"ChatGPT.exe not found at {CHATGPT_EXE}")
         subprocess.Popen(
@@ -42,26 +57,27 @@ class ChatGPTAutomation:
         # Wait for window to appear
         t0 = time.time()
         while time.time() - t0 < timeout:
-            if gw.getWindowsWithTitle(self.window_title):
-                return
+            win = self._find_window()
+            if win:
+                return win
             time.sleep(0.5)
         raise RuntimeError("ChatGPT window did not appear within timeout")
 
     def _focus(self) -> None:
         """Focus the ChatGPT window, starting the app if necessary."""
-        # Ensure the application is running so ``getWindowsWithTitle`` has
-        # a chance to find the window. ``_ensure_running`` will launch the
-        # executable and wait for the window to appear when needed.
-        self._ensure_running()
+        if self.window and self.window in gw.getAllWindows():
+            try:
+                self.window.activate()
+                time.sleep(0.2)
+                return
+            except Exception:
+                self.window = None
 
-        wins = gw.getWindowsWithTitle(self.window_title)
-        if not wins:
-            raise RuntimeError(
-                f"ChatGPT window titled '{self.window_title}' not found. "
-                "Start the desktop app and try again."
-            )
-        win = wins[0]
-        win.activate()
+        win = self._find_window()
+        if not win:
+            win = self._ensure_running()
+        self.window = win
+        self.window.activate()
         time.sleep(0.2)
 
 

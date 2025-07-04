@@ -24,7 +24,10 @@ pyautogui_stub = types.SimpleNamespace(
     center=lambda box: (box[0] + box[2]/2, box[1] + box[3]/2),
 )
 
-pygetwindow_stub = types.SimpleNamespace(getWindowsWithTitle=lambda *a, **k: [])
+pygetwindow_stub = types.SimpleNamespace(
+    getWindowsWithTitle=lambda *a, **k: [],
+    getAllWindows=lambda: [],
+)
 pyperclip_stub = types.SimpleNamespace(copy=lambda *a, **k: None, paste=lambda: '')
 
 sys.modules['pyautogui'] = pyautogui_stub
@@ -39,13 +42,20 @@ def test_ensure_running(monkeypatch):
     monkeypatch.setattr(automation, 'pyperclip', pyperclip_stub)
     monkeypatch.setattr(automation.time, 'sleep', lambda *a, **k: None)
     calls = {}
-    windows = [[], [], [object()]]
+    class FakeWin:
+        title = 'ChatGPT'
 
-    def fake_get(title):
-        calls.setdefault('get', []).append(title)
-        return windows.pop(0)
+    windows = [[], [], [FakeWin()]]
 
-    monkeypatch.setattr(pygetwindow_stub, 'getWindowsWithTitle', fake_get)
+    def fake_get_all():
+        calls.setdefault('get', 0)
+        calls['get'] += 1
+        res = windows[0]
+        if len(windows) > 1:
+            windows.pop(0)
+        return res
+
+    monkeypatch.setattr(pygetwindow_stub, 'getAllWindows', fake_get_all)
     monkeypatch.setattr(automation, 'CHATGPT_EXE', types.SimpleNamespace(exists=lambda: True))
 
     def fake_popen(*a, **k):
@@ -61,10 +71,11 @@ def test_ensure_running(monkeypatch):
     monkeypatch.setattr(automation.time, 'time', fake_time)
 
     bot = automation.ChatGPTAutomation('prompt')
-    bot._ensure_running()
+    win = bot._ensure_running()
 
     assert calls.get('popen') is True
-    assert len(calls['get']) >= 2
+    assert calls['get'] >= 2
+    assert isinstance(win, FakeWin)
 
 
 
@@ -74,17 +85,25 @@ def test_focus(monkeypatch):
     monkeypatch.setattr(automation, 'gw', pygetwindow_stub)
     monkeypatch.setattr(automation, 'pyperclip', pyperclip_stub)
     monkeypatch.setattr(automation.time, 'sleep', lambda *a, **k: None)
-    activated = {}
+    activated = {'count': 0}
 
     class FakeWin:
+        def __init__(self):
+            self.title = 'ChatGPT'
         def activate(self):
-            activated['done'] = True
+            activated['count'] += 1
 
-    monkeypatch.setattr(pygetwindow_stub, 'getWindowsWithTitle', lambda t: [FakeWin()])
+    win = FakeWin()
+    monkeypatch.setattr(pygetwindow_stub, 'getAllWindows', lambda: [win])
     bot = automation.ChatGPTAutomation('prompt')
     bot._focus()
+    assert activated['count'] == 1
+    assert bot.window is win
 
-    assert activated.get('done') is True
+    win.title = 'Renamed'
+    bot._focus()
+    assert activated['count'] == 2
+    assert bot.window is win
 
 
 
