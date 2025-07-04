@@ -48,10 +48,18 @@ class ChatGPTAutomation:
         raise RuntimeError("ChatGPT window did not appear within timeout")
 
     def _focus(self) -> None:
+        """Focus the ChatGPT window, starting the app if necessary."""
+        # Ensure the application is running so ``getWindowsWithTitle`` has
+        # a chance to find the window. ``_ensure_running`` will launch the
+        # executable and wait for the window to appear when needed.
+        self._ensure_running()
+
         wins = gw.getWindowsWithTitle(self.window_title)
         if not wins:
-            raise RuntimeError(f"ChatGPT window titled '{self.window_title}' not found. "
-                            "Start the desktop app and try again.")
+            raise RuntimeError(
+                f"ChatGPT window titled '{self.window_title}' not found. "
+                "Start the desktop app and try again."
+            )
         win = wins[0]
         win.activate()
         time.sleep(0.2)
