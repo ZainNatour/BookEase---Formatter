@@ -37,13 +37,11 @@ def _load_config(path: Path = CONFIG_PATH) -> dict:
     return data
 
 
-_config = _load_config()
-copy_icon_templates = _config["copy_icon_templates"]
-chunk_size = _config["chunk_size"]
-chunk_overlap = _config["chunk_overlap"]
-typing_indicator_bbox = _config["typing_indicator_bbox"]
+def load_config(path: Path = CONFIG_PATH) -> dict:
+    """Return the configuration dictionary, loading it from ``path``."""
+    return _load_config(path)
 
 
-def get_copy_icons() -> list:
+def get_copy_icons(path: Path = CONFIG_PATH) -> list:
     """Return list of template image paths for the Copy icon."""
-    return list(copy_icon_templates)
+    return list(load_config(path)["copy_icon_templates"])

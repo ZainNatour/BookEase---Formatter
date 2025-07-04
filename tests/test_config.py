@@ -17,11 +17,12 @@ def test_defaults_created(monkeypatch):
     monkeypatch.setattr(yaml, 'safe_load', lambda *a, **k: {})
 
     cfg = importlib.reload(config)
+    data = cfg.load_config()
 
-    assert cfg.copy_icon_templates == cfg.DEFAULT_CONFIG['copy_icon_templates']
-    assert cfg.chunk_size == cfg.DEFAULT_CONFIG['chunk_size']
-    assert cfg.chunk_overlap == cfg.DEFAULT_CONFIG['chunk_overlap']
-    assert cfg.typing_indicator_bbox == cfg.DEFAULT_CONFIG['typing_indicator_bbox']
+    assert data['copy_icon_templates'] == cfg.DEFAULT_CONFIG['copy_icon_templates']
+    assert data['chunk_size'] == cfg.DEFAULT_CONFIG['chunk_size']
+    assert data['chunk_overlap'] == cfg.DEFAULT_CONFIG['chunk_overlap']
+    assert data['typing_indicator_bbox'] == cfg.DEFAULT_CONFIG['typing_indicator_bbox']
 
 
 def test_partial_config(monkeypatch):
@@ -34,8 +35,9 @@ def test_partial_config(monkeypatch):
     monkeypatch.setattr(yaml, 'safe_dump', lambda data, stream: None)
 
     cfg = importlib.reload(config)
+    data = cfg.load_config()
 
-    assert cfg.chunk_size == 42
-    assert cfg.chunk_overlap == cfg.DEFAULT_CONFIG['chunk_overlap']
-    assert cfg.copy_icon_templates == cfg.DEFAULT_CONFIG['copy_icon_templates']
-    assert cfg.typing_indicator_bbox == cfg.DEFAULT_CONFIG['typing_indicator_bbox']
+    assert data['chunk_size'] == 42
+    assert data['chunk_overlap'] == cfg.DEFAULT_CONFIG['chunk_overlap']
+    assert data['copy_icon_templates'] == cfg.DEFAULT_CONFIG['copy_icon_templates']
+    assert data['typing_indicator_bbox'] == cfg.DEFAULT_CONFIG['typing_indicator_bbox']
