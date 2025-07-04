@@ -3,6 +3,7 @@ import zipfile
 import subprocess
 from pathlib import Path
 import json
+import logging
 
 from src import prompt_factory
 
@@ -19,9 +20,11 @@ def ask_gpt(
     chunk: str,
     tool: language_tool_python.LanguageTool,
     focus_retries: int = 3,
+    max_language_failures: int = 2,
 ) -> str:
     """Send a chunk to ChatGPT and validate the response with LanguageTool."""
     language_failures = 0
+    last_reply = ""
     while True:
         for attempt in range(focus_retries):
             try:
@@ -39,11 +42,14 @@ def ask_gpt(
             # Retry the prompt if clipboard retrieval failed
             continue
 
+        last_reply = reply
+
         matches = tool.check(reply)
         if len(matches) > 3:
             language_failures += 1
-            if language_failures >= 2:
-                raise RuntimeError("Too many language issues in reply")
+            if language_failures >= max_language_failures:
+                logging.warning("Too many language issues in reply")
+                return last_reply
             continue
 
         return reply
@@ -52,7 +58,10 @@ def ask_gpt(
 @click.command()
 @click.option('--input', 'input_path', required=True, type=click.Path(exists=True))
 @click.option('--output', 'output_path', required=True, type=click.Path())
-def main(input_path: str, output_path: str) -> None:
+@click.option('--ignore-language-issues', '--max-language-failures',
+              'max_language_failures', type=int, default=2, show_default=True,
+              help='Maximum LanguageTool failures before accepting the reply')
+def main(input_path: str, output_path: str, max_language_failures: int) -> None:
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()
     bot._paste(prompt_factory.build_system_prompt(), hit_enter=True)
@@ -84,7 +93,17 @@ def main(input_path: str, output_path: str) -> None:
                     if idx in done:
                         new_parts.append(chunk)
                         continue
-                    new_parts.append(ask_gpt(bot, name, idx + 1, total, chunk, tool))
+                    new_parts.append(
+                        ask_gpt(
+                            bot,
+                            name,
+                            idx + 1,
+                            total,
+                            chunk,
+                            tool,
+                            max_language_failures=max_language_failures,
+                        )
+                    )
                     done.add(idx)
                     progress[name] = sorted(done)
                     with open(progress_path, 'w') as f:

@@ -33,6 +33,12 @@ You can also run the CLI directly:
 ```bash
 python -m src.process_epub --input mybook.epub --output cleaned.epub
 ```
+You can increase the tolerance for LanguageTool warnings with
+`--max-language-failures` (alias `--ignore-language-issues`):
+```bash
+python -m src.process_epub --input mybook.epub --output cleaned.epub \
+    --max-language-failures 5
+```
 
 ### Environment variables
 

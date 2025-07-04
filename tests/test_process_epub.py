@@ -186,7 +186,7 @@ def test_resume(tmp_path, monkeypatch):
 
     calls = []
 
-    def crash_gpt(bot, path, idx, total, chunk, tool):
+    def crash_gpt(bot, path, idx, total, chunk, tool, **kwargs):
         calls.append(chunk)
         if len(calls) == 4:
             raise RuntimeError('boom')
@@ -209,7 +209,7 @@ def test_resume(tmp_path, monkeypatch):
     calls.clear()
     count = {'n': 0}
 
-    def resume_gpt(bot, path, idx, total, chunk, tool):
+    def resume_gpt(bot, path, idx, total, chunk, tool, **kwargs):
         count['n'] += 1
         return chunk.upper()
 
