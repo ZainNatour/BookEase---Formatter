@@ -10,9 +10,13 @@ def build_system_prompt() -> str:
     return SYSTEM_TEMPLATE
 
 
-def build_user_prompt(file_path: str, chunk_id: int, total: int, chunk: str) -> str:
+def build_user_prompt(
+    file_path: str,
+    chunk_id: int,
+    total: int,
+    chunk: str,
+) -> str:
     return (
         f"<file>{file_path}</file>\n"
         f"<chunk id='{chunk_id}/{total}'>\n{chunk}\n</chunk>"
     )
-

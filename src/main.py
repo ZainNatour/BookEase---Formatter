@@ -37,6 +37,7 @@ def quit_program() -> None:
     keyboard.unhook_all_hotkeys()
     sys.exit(0)
 
+
 if __name__ == "__main__":
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()
