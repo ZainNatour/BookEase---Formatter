@@ -119,7 +119,14 @@ def main(input_path: str, output_path: str, max_language_failures: int) -> None:
                 continue
             zout.writestr(name, contents[name], compress_type=zipfile.ZIP_DEFLATED)
 
-    result = subprocess.run(['epubcheck', output_path], capture_output=True, text=True)
+    try:
+        result = subprocess.run(
+            ['epubcheck', output_path], capture_output=True, text=True
+        )
+    except FileNotFoundError:
+        raise SystemExit(
+            'epubcheck executable not found; install from https://github.com/w3c/epubcheck'
+        )
     if result.returncode != 0:
         raise SystemExit(result.stdout + result.stderr)
 
