@@ -41,8 +41,8 @@ def test_retry_failure(monkeypatch):
     responses = ['bad', 'still bad']
     monkeypatch.setattr(process_epub, 'read_response', lambda: responses.pop(0))
     tool = types.SimpleNamespace(check=lambda txt: [1] * 4)
-    with pytest.raises(RuntimeError):
-        process_epub.ask_gpt(bot, 'file', 1, 1, 'prompt', tool)
+    result = process_epub.ask_gpt(bot, 'file', 1, 1, 'prompt', tool)
+    assert result == 'still bad'
 
 
 def test_read_error_retry(monkeypatch):
@@ -74,6 +74,16 @@ def test_language_error_with_read_failure(monkeypatch):
 
     monkeypatch.setattr(process_epub, 'read_response', fake_read)
     tool = types.SimpleNamespace(check=lambda txt: [1, 2, 3, 4])
-    with pytest.raises(RuntimeError):
-        process_epub.ask_gpt(bot, 'file', 1, 1, 'prompt', tool)
+    result = process_epub.ask_gpt(bot, 'file', 1, 1, 'prompt', tool)
+    assert result == 'bad text'
     assert len(bot.calls) == 6
+
+
+def test_language_failures_capped(monkeypatch):
+    bot = DummyBot()
+    monkeypatch.setattr(process_epub, 'read_response', lambda: 'bad')
+    tool = types.SimpleNamespace(check=lambda txt: [1, 2, 3, 4])
+    result = process_epub.ask_gpt(
+        bot, 'file', 1, 1, 'prompt', tool, max_language_failures=1
+    )
+    assert result == 'bad'
