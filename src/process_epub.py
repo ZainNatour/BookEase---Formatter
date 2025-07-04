@@ -18,10 +18,21 @@ def ask_gpt(
     total: int,
     chunk: str,
     tool: language_tool_python.LanguageTool,
+    focus_retries: int = 3,
 ) -> str:
     """Send a chunk to ChatGPT and validate the response with LanguageTool."""
     for attempt in range(2):
-        bot._focus()
+        last_err = None
+        for _ in range(focus_retries):
+            try:
+                bot._focus()
+                break
+            except Exception as e:
+                last_err = e
+        else:
+            raise RuntimeError(
+                f"Unable to focus ChatGPT after {focus_retries} attempts: {last_err}"
+            )
         user_msg = prompt_factory.build_user_prompt(file_path, chunk_id, total, chunk)
         bot._paste(user_msg, hit_enter=True)
         reply = read_response()

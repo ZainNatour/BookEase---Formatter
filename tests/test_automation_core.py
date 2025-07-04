@@ -87,6 +87,40 @@ def test_focus(monkeypatch):
     assert activated.get('done') is True
 
 
+def test_focus_restart_when_minimized(monkeypatch):
+    import automation
+    monkeypatch.setattr(automation, 'pag', pyautogui_stub)
+    monkeypatch.setattr(automation, 'gw', pygetwindow_stub)
+    monkeypatch.setattr(automation, 'pyperclip', pyperclip_stub)
+    monkeypatch.setattr(automation.time, 'sleep', lambda *a, **k: None)
+
+    calls = {"ensure": 0, "activated": 0}
+
+    def fake_ensure(timeout=10.0):
+        calls["ensure"] += 1
+
+    class FakeWin:
+        def __init__(self):
+            self.isMinimized = True
+        def restore(self):
+            self.isMinimized = False
+        def activate(self):
+            calls["activated"] += 1
+
+    win = FakeWin()
+    bot = automation.ChatGPTAutomation('prompt')
+    bot._window = win
+    monkeypatch.setattr(bot, '_ensure_running', fake_ensure)
+    monkeypatch.setattr(pygetwindow_stub, 'getWindowsWithTitle', lambda t: [win])
+
+    bot._focus()
+
+    assert calls["ensure"] == 1
+    assert calls["activated"] == 1
+    assert bot._window is win
+    assert win.isMinimized is False
+
+
 
 def test_paste(monkeypatch):
     import automation

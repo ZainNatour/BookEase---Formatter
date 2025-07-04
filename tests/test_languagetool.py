@@ -43,3 +43,37 @@ def test_retry_failure(monkeypatch):
     tool = types.SimpleNamespace(check=lambda txt: [1] * 4)
     with pytest.raises(RuntimeError):
         process_epub.ask_gpt(bot, 'file', 1, 1, 'prompt', tool)
+
+
+def test_focus_retry_success(monkeypatch):
+    class FocusBot(DummyBot):
+        def __init__(self):
+            super().__init__()
+            self.n = 0
+        def _focus(self):
+            self.n += 1
+            if self.n < 3:
+                raise RuntimeError('boom')
+            super()._focus()
+
+    bot = FocusBot()
+    monkeypatch.setattr(process_epub, 'read_response', lambda: 'ok')
+    tool = types.SimpleNamespace(check=lambda *_: [])
+
+    result = process_epub.ask_gpt(bot, 'f', 1, 1, 'c', tool)
+
+    assert result == 'ok'
+    assert bot.n == 3
+
+
+def test_focus_retry_failure(monkeypatch):
+    class BadBot(DummyBot):
+        def _focus(self):
+            raise RuntimeError('nope')
+
+    bot = BadBot()
+    monkeypatch.setattr(process_epub, 'read_response', lambda: 'x')
+    tool = types.SimpleNamespace(check=lambda *_: [])
+
+    with pytest.raises(RuntimeError, match='Unable to focus ChatGPT'):
+        process_epub.ask_gpt(bot, 'f', 1, 1, 'c', tool)
