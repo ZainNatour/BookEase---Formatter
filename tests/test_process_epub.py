@@ -349,3 +349,41 @@ def test_copies_response_per_chunk(tmp_path, monkeypatch):
     assert result.exit_code == 0
 
     assert read_calls['n'] == expected
+
+
+def test_total_failures_limit(tmp_path, monkeypatch):
+    in_path = tmp_path / "sample.epub"
+    out_path = tmp_path / "out.epub"
+    create_sample_epub(in_path)
+
+    DummyBot.instances.clear()
+    monkeypatch.setattr(process_epub, 'ChatGPTAutomation', DummyBot)
+    from langchain.text_splitter import CharacterTextSplitter
+    monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
+
+    monkeypatch.setattr(
+        process_epub,
+        'prompt_factory',
+        types.SimpleNamespace(
+            build_system_prompt=lambda: 'SYS',
+            build_user_prompt=lambda *a, **k: 'USER',
+        ),
+    )
+
+    def failing(*a, **k):
+        return process_epub.GPTResult('BAD', failed=True)
+
+    monkeypatch.setattr(process_epub, 'ask_gpt', failing)
+
+    monkeypatch.setattr(
+        process_epub.subprocess, 'run', lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='', stderr='')
+    )
+
+    from click.testing import CliRunner
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ['--input', str(in_path), '--output', str(out_path), '--max-total-failures', '2'],
+    )
+    assert result.exit_code != 0
+    assert 'after processing 3 chunks' in result.output.lower()

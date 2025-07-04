@@ -47,6 +47,12 @@ Similarly, you can cap the number of consecutive clipboard read failures with
 python -m src.process_epub --input mybook.epub --output cleaned.epub \
     --max-read-failures 3
 ```
+To stop processing entirely after too many GPT failures, use
+`--max-total-failures`:
+```bash
+python -m src.process_epub --input mybook.epub --output cleaned.epub \
+    --max-total-failures 10
+```
 
 ### Environment variables
 
