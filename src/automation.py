@@ -8,17 +8,34 @@ logging.basicConfig(level=logging.INFO)
 # ``pathlib.Path`` does not provide ``expandvars`` like ``os.path`` does, so we
 # expand the environment variables in the string first and then create a
 # ``Path`` object. Users can override this path with the ``CHATGPT_EXE``
-# environment variable.
+# environment variable. When ``CHATGPT_EXE`` isn't set we try several common
+# installation locations in order.
+
+# Possible locations for ChatGPT Desktop. ``%LOCALAPPDATA%`` is expanded at
+# runtime.
+DEFAULT_CHATGPT_PATHS = [
+    r"%LOCALAPPDATA%\Programs\chatgpt\ChatGPT.exe",
+    r"%LOCALAPPDATA%\Programs\ChatGPT\ChatGPT.exe",
+    r"%LOCALAPPDATA%\Microsoft\WindowsApps\ChatGPT.exe",
+    r"C:\\Program Files\\ChatGPT\\ChatGPT.exe",
+    r"C:\\Program Files (x86)\\ChatGPT\\ChatGPT.exe",
+]
+
 CHATGPT_EXE = pathlib.Path(
     os.path.expanduser(
-        os.path.expandvars(
-            os.environ.get(
-                "CHATGPT_EXE",
-                r"C:\Users\ZBook\AppData\Local\Microsoft\WindowsApps\ChatGPT.exe",
-            )
-        )
+        os.path.expandvars(os.environ.get("CHATGPT_EXE", DEFAULT_CHATGPT_PATHS[0]))
     )
 )
+
+# Helper to locate ChatGPT.exe if the current ``CHATGPT_EXE`` doesn't exist.
+def _find_default_exe() -> pathlib.Path:
+    for path in DEFAULT_CHATGPT_PATHS:
+        candidate = pathlib.Path(os.path.expanduser(os.path.expandvars(path)))
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        "ChatGPT.exe not found; set CHATGPT_EXE or install ChatGPT Desktop"
+    )
 
 # Allow customising the ChatGPT window title via ``CHATGPT_WINDOW_TITLE``.
 DEFAULT_WINDOW_TITLE = os.environ.get("CHATGPT_WINDOW_TITLE", "ChatGPT")
@@ -48,10 +65,16 @@ class ChatGPTAutomation:
         win = self._find_window()
         if win:
             return win
-        if not CHATGPT_EXE.exists():
-            raise FileNotFoundError(f"ChatGPT.exe not found at {CHATGPT_EXE}")
+
+        exe_path = CHATGPT_EXE
+        if not exe_path.exists():
+            if "CHATGPT_EXE" in os.environ:
+                raise FileNotFoundError(f"ChatGPT.exe not found at {exe_path}")
+            exe_path = _find_default_exe()
+            globals()["CHATGPT_EXE"] = exe_path
+
         subprocess.Popen(
-            [str(CHATGPT_EXE)], stdout=subprocess.DEVNULL,
+            [str(exe_path)], stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL, shell=False
         )
         # Wait for window to appear
