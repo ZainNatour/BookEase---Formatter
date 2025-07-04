@@ -302,3 +302,50 @@ def test_epubcheck_missing(tmp_path, monkeypatch):
     result = runner.invoke(cli, ['--input', str(in_path), '--output', str(out_path)])
     assert result.exit_code != 0
     assert 'epubcheck executable not found' in result.output.lower()
+
+
+def test_copies_response_per_chunk(tmp_path, monkeypatch):
+    in_path = tmp_path / "sample.epub"
+    out_path = tmp_path / "out.epub"
+    create_sample_epub(in_path)
+
+    DummyBot.instances.clear()
+    monkeypatch.setattr(process_epub, 'ChatGPTAutomation', DummyBot)
+    from langchain.text_splitter import CharacterTextSplitter
+    monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
+
+    monkeypatch.setattr(
+        process_epub,
+        'prompt_factory',
+        types.SimpleNamespace(
+            build_system_prompt=lambda: 'SYS',
+            build_user_prompt=lambda *a, **k: 'USER',
+        ),
+    )
+
+    read_calls = {'n': 0}
+
+    def fake_read_response():
+        read_calls['n'] += 1
+        return DummyBot.instances[-1].last.upper()
+
+    monkeypatch.setattr(process_epub, 'read_response', fake_read_response)
+
+    monkeypatch.setattr(
+        process_epub.subprocess, 'run', lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='', stderr='')
+    )
+
+    expected = 0
+    with zipfile.ZipFile(in_path, 'r') as zin:
+        for info in zin.infolist():
+            ext = Path(info.filename).suffix.lower()
+            if ext in {'.xhtml', '.opf', '.ncx', '.css'}:
+                text = zin.read(info.filename).decode('utf-8')
+                expected += len(process_epub.split_text(text))
+
+    from click.testing import CliRunner
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--input', str(in_path), '--output', str(out_path)])
+    assert result.exit_code == 0
+
+    assert read_calls['n'] == expected
