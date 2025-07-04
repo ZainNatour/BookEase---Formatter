@@ -93,7 +93,10 @@ def read_response(verbose: bool = False):
     """Retrieve the assistant's response from the ChatGPT Desktop UI."""
     wait_until_typing_stops()
 
-    import ui_capture
+    try:
+        from src import ui_capture
+    except ModuleNotFoundError:  # Fallback when src isn't a package
+        import ui_capture
 
     for attempt in range(5):
         _scroll_to_bottom()
