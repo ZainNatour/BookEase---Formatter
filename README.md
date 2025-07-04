@@ -64,6 +64,8 @@ following variables:
 - `CHATGPT_EXE` – full path to `ChatGPT.exe`.
 - `CHATGPT_WINDOW_TITLE` – substring or regular expression used to locate the
   ChatGPT window.
+- `LANGTOOL_PATH` – path to a local LanguageTool installation. If set, the
+  bundled download step is skipped.
 
 If `CHATGPT_EXE` isn't set, BookEase searches for `ChatGPT.exe` in the following
 locations, in order:
