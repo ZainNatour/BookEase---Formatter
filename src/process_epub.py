@@ -8,7 +8,7 @@ import logging
 from src import prompt_factory
 
 from utils.chunking import split_text
-from src.automation import ChatGPTAutomation, read_response
+from src.automation import ChatGPTAutomation, read_response, LoginRequiredError
 import language_tool_python
 
 
@@ -152,16 +152,19 @@ def main(
                     if idx in done:
                         new_parts.append(chunk)
                         continue
-                    result = ask_gpt(
-                        bot,
-                        name,
-                        idx + 1,
-                        total,
-                        chunk,
-                        tool,
-                        max_language_failures=max_language_failures,
-                        max_read_failures=max_read_failures,
-                    )
+                    try:
+                        result = ask_gpt(
+                            bot,
+                            name,
+                            idx + 1,
+                            total,
+                            chunk,
+                            tool,
+                            max_language_failures=max_language_failures,
+                            max_read_failures=max_read_failures,
+                        )
+                    except LoginRequiredError as e:
+                        raise SystemExit(str(e))
                     new_parts.append(result)
                     processed_chunks += 1
                     if getattr(result, 'failed', False):

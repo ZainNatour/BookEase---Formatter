@@ -9,6 +9,7 @@ import pytest
 
 # Stub GUI libraries before importing the module under test
 pyautogui_stub = types.SimpleNamespace(
+    screenshot=lambda *a, **k: types.SimpleNamespace(tobytes=lambda: b''),
     locateOnScreen=lambda *a, **k: None,
     moveTo=lambda *a, **k: None,
     click=lambda *a, **k: None,
@@ -474,3 +475,39 @@ def test_preserves_compression(tmp_path, monkeypatch):
 
     with zipfile.ZipFile(in_path, 'r') as zin, zipfile.ZipFile(out_path, 'r') as zout:
         assert zin.getinfo('OEBPS/content.opf').compress_type == zout.getinfo('OEBPS/content.opf').compress_type
+
+
+def test_stop_on_login_required(tmp_path, monkeypatch):
+    in_path = tmp_path / "sample.epub"
+    out_path = tmp_path / "out.epub"
+    create_sample_epub(in_path)
+
+    DummyBot.instances.clear()
+    monkeypatch.setattr(process_epub, 'ChatGPTAutomation', DummyBot)
+    from langchain.text_splitter import CharacterTextSplitter
+    monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
+
+    monkeypatch.setattr(
+        process_epub,
+        'prompt_factory',
+        types.SimpleNamespace(
+            build_system_prompt=lambda: 'SYS',
+            build_user_prompt=lambda *a, **k: 'USER',
+        ),
+    )
+
+    def raise_login(*a, **k):
+        raise process_epub.LoginRequiredError('login needed')
+
+    monkeypatch.setattr(process_epub, 'ask_gpt', raise_login)
+
+    monkeypatch.setattr(
+        process_epub.subprocess, 'run', lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='', stderr='')
+    )
+
+    from click.testing import CliRunner
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--input', str(in_path), '--output', str(out_path)])
+
+    assert result.exit_code != 0
+    assert 'login needed' in result.output.lower()

@@ -33,3 +33,11 @@ def click_copy_icon() -> bool:
         pyautogui.click()
         return True
     return False
+
+
+def detect_login_screen() -> bool:
+    """Return ``True`` if the ChatGPT login screen is visible."""
+    for path in config.load_config().get("login_screen_templates", []):
+        if pyautogui.locateOnScreen(path) is not None:
+            return True
+    return False

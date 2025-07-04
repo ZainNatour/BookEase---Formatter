@@ -9,6 +9,10 @@ import sys
 import re
 import logging
 
+
+class LoginRequiredError(RuntimeError):
+    """Raised when the ChatGPT login screen is detected."""
+
 # Determine the location of the ChatGPT desktop executable.
 # ``pathlib.Path`` does not provide ``expandvars`` like ``os.path`` does, so we
 # expand the environment variables in the string first and then create a
@@ -188,5 +192,16 @@ def read_response(verbose: bool = False):
         if text.strip():
             return text
         logging.warning("Clipboard empty on attempt %d", attempt + 1)
+
+    try:
+        login = getattr(ui_capture, "detect_login_screen", lambda: False)()
+    except Exception as e:
+        if verbose:
+            print(f"Login check failed: {e}", file=sys.stderr)
+    else:
+        if login:
+            raise LoginRequiredError(
+                "ChatGPT appears to be logged out; please sign in and retry"
+            )
 
     raise RuntimeError("Clipboard remained empty after 5 attempts")

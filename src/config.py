@@ -11,6 +11,7 @@ DEFAULT_CONFIG = {
     "chunk_size": 1500,
     "chunk_overlap": 200,
     "typing_indicator_bbox": [1150, 850, 50, 20],
+    "login_screen_templates": [],
 }
 
 
@@ -45,3 +46,8 @@ def load_config(path: Path = CONFIG_PATH) -> dict:
 def get_copy_icons(path: Path = CONFIG_PATH) -> list:
     """Return list of template image paths for the Copy icon."""
     return list(load_config(path)["copy_icon_templates"])
+
+
+def get_login_templates(path: Path = CONFIG_PATH) -> list:
+    """Return template paths used to detect the login screen."""
+    return list(load_config(path)["login_screen_templates"])
