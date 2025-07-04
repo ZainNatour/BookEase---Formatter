@@ -52,7 +52,12 @@ def ask_gpt(
         except RuntimeError:
             read_failures += 1
             if read_failures >= max_read_failures:
-                logging.warning("Too many read_response failures")
+                logging.warning(
+                    "Too many read_response failures for %s chunk %d/%d",
+                    file_path,
+                    chunk_id,
+                    total,
+                )
                 return GPTResult(last_reply, failed=True)
             # Retry the prompt if clipboard retrieval failed
             continue
@@ -65,7 +70,12 @@ def ask_gpt(
         if len(matches) > 3:
             language_failures += 1
             if language_failures >= max_language_failures:
-                logging.warning("Too many language issues in reply")
+                logging.warning(
+                    "Too many language issues in %s chunk %d/%d",
+                    file_path,
+                    chunk_id,
+                    total,
+                )
                 return GPTResult(last_reply, failed=True)
             continue
 
@@ -84,6 +94,7 @@ def ask_gpt(
               help='Maximum total GPT failures before stopping processing')
 def main(input_path: str, output_path: str, max_language_failures: int,
          max_read_failures: int, max_total_failures: int) -> None:
+    logging.basicConfig(level=logging.INFO)
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()
     bot._paste(prompt_factory.build_system_prompt(), hit_enter=True)
