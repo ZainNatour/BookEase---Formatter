@@ -1,5 +1,12 @@
-import time, pyautogui as pag, pygetwindow as gw, pyperclip
-import subprocess, os, pathlib, sys, re
+import time
+import pyautogui as pag
+import pygetwindow as gw
+import pyperclip
+import subprocess
+import os
+import pathlib
+import sys
+import re
 import logging
 
 # Determine the location of the ChatGPT desktop executable.
@@ -21,9 +28,12 @@ DEFAULT_CHATGPT_PATHS = [
 
 CHATGPT_EXE = pathlib.Path(
     os.path.expanduser(
-        os.path.expandvars(os.environ.get("CHATGPT_EXE", DEFAULT_CHATGPT_PATHS[0]))
+        os.path.expandvars(
+            os.environ.get("CHATGPT_EXE", DEFAULT_CHATGPT_PATHS[0])
+        )
     )
 )
+
 
 # Helper to locate ChatGPT.exe if the current ``CHATGPT_EXE`` doesn't exist.
 def _find_default_exe() -> pathlib.Path:
@@ -35,12 +45,15 @@ def _find_default_exe() -> pathlib.Path:
         "ChatGPT.exe not found; set CHATGPT_EXE or install ChatGPT Desktop"
     )
 
+
 # Allow customising the ChatGPT window title via ``CHATGPT_WINDOW_TITLE``.
 DEFAULT_WINDOW_TITLE = os.environ.get("CHATGPT_WINDOW_TITLE", "ChatGPT")
 
 
 class ChatGPTAutomation:
-    def __init__(self, system_prompt: str, window_title: str = DEFAULT_WINDOW_TITLE):
+    def __init__(
+        self, system_prompt: str, window_title: str = DEFAULT_WINDOW_TITLE
+    ):
         self.system_prompt = system_prompt
         self.window_title = window_title
         self._title_re = re.compile(window_title, re.I)
@@ -104,7 +117,6 @@ class ChatGPTAutomation:
             self.window.restore()
         self.window.activate()
         time.sleep(0.2)
-
 
     def _paste(self, text: str, hit_enter=False):
         pyperclip.copy(text)

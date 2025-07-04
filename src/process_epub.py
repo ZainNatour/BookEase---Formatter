@@ -45,7 +45,9 @@ def ask_gpt(
                     raise
             else:
                 break
-        user_msg = prompt_factory.build_user_prompt(file_path, chunk_id, total, chunk)
+        user_msg = prompt_factory.build_user_prompt(
+            file_path, chunk_id, total, chunk
+        )
         bot._paste(user_msg, hit_enter=True)
         try:
             reply = read_response()
@@ -84,15 +86,23 @@ def ask_gpt(
 
 
 @click.command()
-@click.option('--input', 'input_path', required=True, type=click.Path(exists=True))
+@click.option(
+    '--input', 'input_path', required=True, type=click.Path(exists=True)
+)
 @click.option('--output', 'output_path', required=True, type=click.Path())
-@click.option('--ignore-language-issues', '--max-language-failures',
-              'max_language_failures', type=int, default=2, show_default=True,
-              help='Maximum LanguageTool failures before accepting the reply')
-@click.option('--max-read-failures', type=int, default=5, show_default=True,
-              help='Maximum consecutive read_response failures before giving up')
-@click.option('--max-total-failures', type=int, default=10, show_default=True,
-              help='Maximum total GPT failures before stopping processing')
+@click.option(
+    '--ignore-language-issues', '--max-language-failures',
+    'max_language_failures', type=int, default=2, show_default=True,
+    help='Maximum LanguageTool failures before accepting the reply'
+)
+@click.option(
+    '--max-read-failures', type=int, default=5, show_default=True,
+    help='Maximum consecutive read_response failures before giving up'
+)
+@click.option(
+    '--max-total-failures', type=int, default=10, show_default=True,
+    help='Maximum total GPT failures before stopping processing'
+)
 def main(
     input_path: str,
     output_path: str,
@@ -151,7 +161,8 @@ def main(
                         total_failures += 1
                         if total_failures > max_total_failures:
                             raise SystemExit(
-                                f"Maximum total failures exceeded after processing {processed_chunks} chunks"
+                                "Maximum total failures exceeded after "
+                                f"processing {processed_chunks} chunks"
                             )
                     done.add(idx)
                     progress[name] = sorted(done)
@@ -162,11 +173,19 @@ def main(
             contents[name] = data
 
     with zipfile.ZipFile(output_path, 'w') as zout:
-        zout.writestr('mimetype', 'application/epub+zip', compress_type=zipfile.ZIP_STORED)
+        zout.writestr(
+            'mimetype',
+            'application/epub+zip',
+            compress_type=zipfile.ZIP_STORED,
+        )
         for name in filenames:
             if name == 'mimetype':
                 continue
-            zout.writestr(name, contents[name], compress_type=zipfile.ZIP_DEFLATED)
+            zout.writestr(
+                name,
+                contents[name],
+                compress_type=zipfile.ZIP_DEFLATED,
+            )
 
     try:
         result = subprocess.run(
@@ -174,7 +193,8 @@ def main(
         )
     except FileNotFoundError:
         raise SystemExit(
-            'epubcheck executable not found; install from https://github.com/w3c/epubcheck'
+            'epubcheck executable not found; install from '
+            'https://github.com/w3c/epubcheck'
         )
     if result.returncode != 0:
         raise SystemExit(result.stdout + result.stderr)
