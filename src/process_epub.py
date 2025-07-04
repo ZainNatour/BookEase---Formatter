@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 import json
 import logging
+import os
 
 from src import prompt_factory
 
@@ -113,7 +114,12 @@ def main(
     logging.basicConfig(level=logging.INFO)
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()
-    tool = language_tool_python.LanguageTool("en-US")
+
+    lt_path = os.getenv("LANGTOOL_PATH")
+    if lt_path and Path(lt_path).exists():
+        tool = language_tool_python.LanguageTool("en-US", path=lt_path)
+    else:
+        tool = language_tool_python.LanguageTool("en-US")
 
     filenames: list[str] = []
     contents: dict[str, bytes] = {}
