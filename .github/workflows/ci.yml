@@ -49,10 +49,3 @@ jobs:
           name: BookEaseFormatter.exe
           path: dist/BookEaseFormatter.exe
 
-  second-job:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: ["3.11"]
-    runs-on: ${{ matrix.os }}
-    steps: *ci-steps
