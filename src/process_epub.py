@@ -135,7 +135,13 @@ def main(
             data = zin.read(name)
             ext = Path(name).suffix.lower()
             if ext in {'.xhtml', '.opf', '.ncx', '.css'}:
-                text = data.decode('utf-8')
+                try:
+                    text = data.decode('utf-8')
+                except UnicodeDecodeError:
+                    logging.warning(
+                        "Failed to decode %s with UTF-8; using replacement", name
+                    )
+                    text = data.decode('utf-8', errors='replace')
                 new_parts = []
                 done = set(progress.get(name, []))
                 chunks = list(split_text(text))
