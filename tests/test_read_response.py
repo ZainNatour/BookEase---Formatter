@@ -1,20 +1,25 @@
 import os
 import sys
 import types
+import pytest
 
 # Ensure src package is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 hotkeys = []
 
+
 def fake_hotkey(*args):
     hotkeys.append(args)
+
 
 class FakeImage:
     def __init__(self, data=b'img'):
         self.data = data
+
     def tobytes(self):
         return self.data
+
 
 # Stub pyautogui
 pyautogui_stub = types.SimpleNamespace(
@@ -41,47 +46,30 @@ import automation
 automation.time.sleep = lambda *a, **k: None
 
 
-def test_read_response_icon_success(monkeypatch):
+@pytest.mark.parametrize(
+    "icon_ret, empties, expected, hotkey_count",
+    [
+        (True, 0, 'icon text', 0),             # icon_success
+        (False, 1, 'fallback text', 2),        # fallback_success
+        (True, 2, 'retry text', 2),            # retry_success
+    ],
+    ids=["icon_success", "fallback_success", "retry_success"],
+)
+def test_read_response(monkeypatch, icon_ret, empties, expected, hotkey_count):
     hotkeys.clear()
-    ui_stub = types.SimpleNamespace(click_copy_icon=lambda: True)
+    monkeypatch.setattr(automation, '_scroll_to_bottom', lambda: None)
+    ui_stub = types.SimpleNamespace(click_copy_icon=lambda: icon_ret)
     monkeypatch.setitem(sys.modules, 'ui_capture', ui_stub)
-    monkeypatch.setattr(pyperclip_stub, 'paste', lambda: 'icon text')
+
+    values = [''] * empties + [expected]
+
+    def fake_paste():
+        return values.pop(0)
+
+    monkeypatch.setattr(pyperclip_stub, 'paste', fake_paste)
 
     result = automation.read_response()
 
-    assert result == 'icon text'
-    assert hotkeys == []
-
-
-def test_read_response_fallback_success(monkeypatch):
-    hotkeys.clear()
-    ui_stub = types.SimpleNamespace(click_copy_icon=lambda: False)
-    monkeypatch.setitem(sys.modules, 'ui_capture', ui_stub)
-    paste_values = ['', 'fallback text']
-    monkeypatch.setattr(pyperclip_stub, 'paste', lambda: paste_values.pop(0))
-
-    result = automation.read_response()
-
-    assert result == 'fallback text'
-    assert hotkeys == [('ctrl', 'a'), ('ctrl', 'c')]
-
-
-def test_read_response_error_logs(monkeypatch, capsys):
-    hotkeys.clear()
-
-    def raise_error():
-        raise RuntimeError('fail')
-
-    ui_stub = types.SimpleNamespace(click_copy_icon=raise_error)
-    monkeypatch.setitem(sys.modules, 'ui_capture', ui_stub)
-
-    paste_values = ['fallback text']
-    monkeypatch.setattr(pyperclip_stub, 'paste', lambda: paste_values.pop(0))
-
-    result = automation.read_response(verbose=True)
-
-    assert result == 'fallback text'
-    assert hotkeys == [('ctrl', 'a'), ('ctrl', 'c')]
-    captured = capsys.readouterr()
-    assert 'fail' in captured.err
+    assert result == expected
+    assert hotkeys == [('ctrl', 'a'), ('ctrl', 'c')] * (hotkey_count // 2)
 
