@@ -43,7 +43,12 @@ def ask_gpt(
         except RuntimeError:
             read_failures += 1
             if read_failures >= max_read_failures:
-                logging.warning("Too many read_response failures")
+                logging.warning(
+                    "Too many read_response failures for %s chunk %d/%d",
+                    file_path,
+                    chunk_id,
+                    total,
+                )
                 return last_reply
             # Retry the prompt if clipboard retrieval failed
             continue
@@ -56,7 +61,12 @@ def ask_gpt(
         if len(matches) > 3:
             language_failures += 1
             if language_failures >= max_language_failures:
-                logging.warning("Too many language issues in reply")
+                logging.warning(
+                    "Too many language issues in %s chunk %d/%d",
+                    file_path,
+                    chunk_id,
+                    total,
+                )
                 return last_reply
             continue
 
