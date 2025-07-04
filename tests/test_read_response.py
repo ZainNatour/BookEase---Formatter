@@ -60,6 +60,7 @@ def test_read_response(monkeypatch, icon_ret, empties, expected, hotkey_count):
     monkeypatch.setattr(automation, '_scroll_to_bottom', lambda: None)
     ui_stub = types.SimpleNamespace(click_copy_icon=lambda: icon_ret)
     monkeypatch.setitem(sys.modules, 'ui_capture', ui_stub)
+    monkeypatch.setitem(sys.modules, 'src.ui_capture', ui_stub)
 
     values = [''] * empties + [expected]
 
@@ -72,4 +73,19 @@ def test_read_response(monkeypatch, icon_ret, empties, expected, hotkey_count):
 
     assert result == expected
     assert hotkeys == [('ctrl', 'a'), ('ctrl', 'c')] * (hotkey_count // 2)
+
+
+def test_read_response_login(monkeypatch):
+    hotkeys.clear()
+    monkeypatch.setattr(automation, '_scroll_to_bottom', lambda: None)
+    ui_stub = types.SimpleNamespace(
+        click_copy_icon=lambda: False,
+        detect_login_screen=lambda: True,
+    )
+    monkeypatch.setitem(sys.modules, 'ui_capture', ui_stub)
+    monkeypatch.setitem(sys.modules, 'src.ui_capture', ui_stub)
+    monkeypatch.setattr(pyperclip_stub, 'paste', lambda: '')
+
+    with pytest.raises(automation.LoginRequiredError):
+        automation.read_response()
 
