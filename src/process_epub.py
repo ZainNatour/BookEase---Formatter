@@ -20,16 +20,24 @@ def ask_gpt(
     tool: language_tool_python.LanguageTool,
 ) -> str:
     """Send a chunk to ChatGPT and validate the response with LanguageTool."""
-    for attempt in range(2):
+    language_failures = 0
+    while True:
         bot._focus()
         user_msg = prompt_factory.build_user_prompt(file_path, chunk_id, total, chunk)
         bot._paste(user_msg, hit_enter=True)
-        reply = read_response()
+        try:
+            reply = read_response()
+        except RuntimeError:
+            # Retry the prompt if clipboard retrieval failed
+            continue
+
         matches = tool.check(reply)
         if len(matches) > 3:
-            if attempt == 0:
-                continue
-            raise RuntimeError("Too many language issues in reply")
+            language_failures += 1
+            if language_failures >= 2:
+                raise RuntimeError("Too many language issues in reply")
+            continue
+
         return reply
 
 
