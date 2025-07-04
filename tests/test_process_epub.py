@@ -38,13 +38,22 @@ import src.process_epub as process_epub
 
 
 class DummyBot:
+    instances = []
+
     def __init__(self, prompt, window_title="ChatGPT"):
         self.prompt = prompt
+        self.pastes = []
+        self.last = ""
+        DummyBot.instances.append(self)
+
     def bootstrap(self):
         pass
+
     def _focus(self):
         pass
+
     def _paste(self, text, hit_enter=False):
+        self.pastes.append(text)
         self.last = text
 
 
@@ -107,11 +116,38 @@ def test_process_epub(tmp_path, monkeypatch):
     out_path = tmp_path / "out.epub"
     create_sample_epub(in_path)
 
+    DummyBot.instances.clear()
     monkeypatch.setattr(process_epub, 'ChatGPTAutomation', DummyBot)
     from langchain.text_splitter import CharacterTextSplitter
     monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
-    monkeypatch.setattr(process_epub, 'ask_gpt', lambda bot, text, tool: text.upper())
-    monkeypatch.setattr(process_epub.subprocess, 'run', lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='', stderr=''))
+
+    calls = {"sys": 0, "user": []}
+
+    def fake_system():
+        calls["sys"] += 1
+        return "SYS"
+
+    def fake_user(path, idx, total, chunk):
+        calls["user"].append((path, idx, total, chunk))
+        return chunk
+
+    monkeypatch.setattr(
+        process_epub,
+        "prompt_factory",
+        types.SimpleNamespace(
+            build_system_prompt=fake_system, build_user_prompt=fake_user
+        ),
+    )
+
+    monkeypatch.setattr(
+        process_epub,
+        "read_response",
+        lambda: DummyBot.instances[-1].last.upper(),
+    )
+
+    monkeypatch.setattr(
+        process_epub.subprocess, "run", lambda *a, **k: types.SimpleNamespace(returncode=0, stdout="", stderr="")
+    )
 
     from click.testing import CliRunner
     runner = CliRunner()
@@ -121,6 +157,12 @@ def test_process_epub(tmp_path, monkeypatch):
     with zipfile.ZipFile(out_path, 'r') as z:
         text = z.read('OEBPS/chapter.xhtml').decode('utf-8')
     assert text == '<HTML><BODY><P>HELLO WORLD.</P></BODY></HTML>'
+
+    bot = DummyBot.instances[0]
+    assert bot.pastes[0] == 'SYS'
+    assert bot.pastes.count('SYS') == 1
+    assert calls['sys'] == 1
+    assert len([p for p in bot.pastes if p != 'SYS']) == len(calls['user'])
 
 
 def test_resume(tmp_path, monkeypatch):
@@ -143,11 +185,11 @@ def test_resume(tmp_path, monkeypatch):
 
     calls = []
 
-    def crash_gpt(bot, text, tool):
-        calls.append(text)
+    def crash_gpt(bot, path, idx, total, chunk, tool):
+        calls.append(chunk)
         if len(calls) == 4:
             raise RuntimeError('boom')
-        return text.upper()
+        return chunk.upper()
 
     from langchain.text_splitter import CharacterTextSplitter
     monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
@@ -166,9 +208,9 @@ def test_resume(tmp_path, monkeypatch):
     calls.clear()
     count = {'n': 0}
 
-    def resume_gpt(bot, text, tool):
+    def resume_gpt(bot, path, idx, total, chunk, tool):
         count['n'] += 1
-        return text.upper()
+        return chunk.upper()
 
     monkeypatch.setattr(process_epub, 'ask_gpt', resume_gpt)
 
