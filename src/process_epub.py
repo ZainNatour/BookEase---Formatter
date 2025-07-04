@@ -58,12 +58,12 @@ def ask_gpt(
                     chunk_id,
                     total,
                 )
+                # now returns a GPTResult with failed=True
                 return GPTResult(last_reply, failed=True)
             # Retry the prompt if clipboard retrieval failed
             continue
 
         read_failures = 0
-        
         last_reply = reply
 
         matches = tool.check(reply)
@@ -76,6 +76,7 @@ def ask_gpt(
                     chunk_id,
                     total,
                 )
+                # also return a failure here
                 return GPTResult(last_reply, failed=True)
             continue
 
@@ -92,8 +93,13 @@ def ask_gpt(
               help='Maximum consecutive read_response failures before giving up')
 @click.option('--max-total-failures', type=int, default=10, show_default=True,
               help='Maximum total GPT failures before stopping processing')
-def main(input_path: str, output_path: str, max_language_failures: int,
-         max_read_failures: int, max_total_failures: int) -> None:
+def main(
+    input_path: str,
+    output_path: str,
+    max_language_failures: int,
+    max_read_failures: int,
+    max_total_failures: int,
+) -> None:
     logging.basicConfig(level=logging.INFO)
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()

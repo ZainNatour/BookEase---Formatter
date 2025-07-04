@@ -1,6 +1,6 @@
 # BookEase Formatter
 
-[![CI](https://github.com/<owner>/BookEase---Formatter/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/BookEase---Formatter/actions/workflows/ci.yml)
+[![CI](https://github.com/ZainNatour/BookEase---Formatter/actions/workflows/ci.yml/badge.svg)](https://github.com/ZainNatour/BookEase---Formatter/actions/workflows/ci.yml)
 
 BookEase Formatter uses ChatGPT to proofread and clean up EPUB files.
 
@@ -64,6 +64,15 @@ following variables:
 - `CHATGPT_EXE` – full path to `ChatGPT.exe`.
 - `CHATGPT_WINDOW_TITLE` – substring or regular expression used to locate the
   ChatGPT window.
+
+If `CHATGPT_EXE` isn't set, BookEase searches for `ChatGPT.exe` in the following
+locations, in order:
+
+1. `%LOCALAPPDATA%\Programs\chatgpt\ChatGPT.exe`
+2. `%LOCALAPPDATA%\Programs\ChatGPT\ChatGPT.exe`
+3. `%LOCALAPPDATA%\Microsoft\WindowsApps\ChatGPT.exe`
+4. `C:\Program Files\ChatGPT\ChatGPT.exe`
+5. `C:\Program Files (x86)\ChatGPT\ChatGPT.exe`
 
 Once detected, the window handle is reused so changing the title later will not
 interrupt automation.

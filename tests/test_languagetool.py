@@ -1,6 +1,7 @@
 import os
 import sys
 import types
+import logging
 import pytest
 
 # Stub GUI and language tool modules before importing the module under test
@@ -79,17 +80,21 @@ def test_language_error_with_read_failure(monkeypatch):
     assert len(bot.calls) == 6
 
 
-def test_language_failures_capped(monkeypatch):
+def test_language_failures_capped(monkeypatch, caplog):
     bot = DummyBot()
     monkeypatch.setattr(process_epub, 'read_response', lambda: 'bad')
     tool = types.SimpleNamespace(check=lambda txt: [1, 2, 3, 4])
-    result = process_epub.ask_gpt(
-        bot, 'file', 1, 1, 'prompt', tool, max_language_failures=1
-    )
+    with caplog.at_level(logging.WARNING):
+        result = process_epub.ask_gpt(
+            bot, 'file', 1, 1, 'prompt', tool, max_language_failures=1
+        )
     assert result == 'bad'
+    assert (
+        "Too many language issues in file chunk 1/1" in caplog.text
+    )
 
 
-def test_read_failures_capped(monkeypatch):
+def test_read_failures_capped(monkeypatch, caplog):
     bot = DummyBot()
     count = {'n': 0}
 
@@ -99,9 +104,13 @@ def test_read_failures_capped(monkeypatch):
 
     monkeypatch.setattr(process_epub, 'read_response', always_fail)
     tool = types.SimpleNamespace(check=lambda txt: [])
-    result = process_epub.ask_gpt(
-        bot, 'file', 1, 1, 'prompt', tool, max_read_failures=2
-    )
+    with caplog.at_level(logging.WARNING):
+        result = process_epub.ask_gpt(
+            bot, 'file', 1, 1, 'prompt', tool, max_read_failures=2
+        )
     assert result == ''
     assert count['n'] == 2
     assert len(bot.calls) == 4
+    assert (
+        "Too many read_response failures for file chunk 1/1" in caplog.text
+    )
