@@ -1,0 +1,10 @@
+chunk_overlap: 200
+chunk_size: 1500
+copy_icon_templates:
+- assets/icons/copy_light.png
+- assets/icons/copy_dark.png
+typing_indicator_bbox:
+- 1150
+- 850
+- 50
+- 20

@@ -5,7 +5,7 @@ import subprocess, os, pathlib, sys
 # does not provide ``expandvars`` like ``os.path`` does, so we expand the
 # environment variables in the string first and then create a ``Path`` object.
 CHATGPT_EXE = pathlib.Path(
-    os.path.expandvars(r"%LOCALAPPDATA%\Programs\ChatGPT\ChatGPT.exe")
+    r"C:\Users\ZBook\AppData\Local\Microsoft\WindowsApps\ChatGPT.exe"
 )
 
 
