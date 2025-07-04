@@ -43,3 +43,37 @@ def test_retry_failure(monkeypatch):
     tool = types.SimpleNamespace(check=lambda txt: [1] * 4)
     with pytest.raises(RuntimeError):
         process_epub.ask_gpt(bot, 'file', 1, 1, 'prompt', tool)
+
+
+def test_read_error_retry(monkeypatch):
+    bot = DummyBot()
+    responses = [RuntimeError('oops'), 'good']
+
+    def fake_read():
+        val = responses.pop(0)
+        if isinstance(val, Exception):
+            raise val
+        return val
+
+    monkeypatch.setattr(process_epub, 'read_response', fake_read)
+    tool = types.SimpleNamespace(check=lambda txt: [])
+    result = process_epub.ask_gpt(bot, 'file', 1, 1, 'prompt', tool)
+    assert result == 'good'
+    assert len(bot.calls) == 4
+
+
+def test_language_error_with_read_failure(monkeypatch):
+    bot = DummyBot()
+    responses = ['bad text', RuntimeError('oops'), 'bad text']
+
+    def fake_read():
+        val = responses.pop(0)
+        if isinstance(val, Exception):
+            raise val
+        return val
+
+    monkeypatch.setattr(process_epub, 'read_response', fake_read)
+    tool = types.SimpleNamespace(check=lambda txt: [1, 2, 3, 4])
+    with pytest.raises(RuntimeError):
+        process_epub.ask_gpt(bot, 'file', 1, 1, 'prompt', tool)
+    assert len(bot.calls) == 6
