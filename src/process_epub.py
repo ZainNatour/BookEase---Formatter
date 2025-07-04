@@ -113,7 +113,6 @@ def main(
     logging.basicConfig(level=logging.INFO)
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()
-    bot._paste(prompt_factory.build_system_prompt(), hit_enter=True)
     tool = language_tool_python.LanguageTool("en-US")
 
     filenames: list[str] = []
