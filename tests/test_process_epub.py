@@ -4,6 +4,7 @@ import types
 import zipfile
 import json
 from pathlib import Path
+import logging
 import pytest
 
 # Stub GUI libraries before importing the module under test
@@ -387,3 +388,51 @@ def test_total_failures_limit(tmp_path, monkeypatch):
     )
     assert result.exit_code != 0
     assert 'after processing 3 chunks' in result.output.lower()
+
+
+def test_non_utf8_entry(tmp_path, monkeypatch, caplog):
+    in_path = tmp_path / "bad.epub"
+    out_path = tmp_path / "out.epub"
+    create_sample_epub(in_path)
+
+    # Add a file encoded with cp1252 to trigger decode error
+    with zipfile.ZipFile(in_path, "a") as z:
+        z.writestr(
+            "OEBPS/bad.xhtml",
+            "<html><body><p>caf\xe9</p></body></html>".encode("cp1252"),
+            compress_type=zipfile.ZIP_DEFLATED,
+        )
+
+    DummyBot.instances.clear()
+    monkeypatch.setattr(process_epub, 'ChatGPTAutomation', DummyBot)
+    from langchain.text_splitter import CharacterTextSplitter
+    monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
+
+    monkeypatch.setattr(
+        process_epub,
+        'prompt_factory',
+        types.SimpleNamespace(
+            build_system_prompt=lambda: 'SYS',
+            build_user_prompt=lambda *a, **k: 'USER',
+        ),
+    )
+
+    monkeypatch.setattr(
+        process_epub,
+        'read_response',
+        lambda: DummyBot.instances[-1].last.upper(),
+    )
+
+    monkeypatch.setattr(
+        process_epub.subprocess, 'run', lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='', stderr='')
+    )
+
+    from click.testing import CliRunner
+    runner = CliRunner()
+    with caplog.at_level(logging.WARNING):
+        result = runner.invoke(cli, ['--input', str(in_path), '--output', str(out_path)])
+    assert result.exit_code == 0
+    assert 'failed to decode' in caplog.text.lower()
+
+    with zipfile.ZipFile(out_path, 'r') as z:
+        assert 'OEBPS/bad.xhtml' in z.namelist()
