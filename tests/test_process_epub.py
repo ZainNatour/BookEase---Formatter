@@ -4,6 +4,7 @@ import types
 import zipfile
 import json
 from pathlib import Path
+import pytest
 
 # Stub GUI libraries before importing the module under test
 pyautogui_stub = types.SimpleNamespace(
@@ -218,3 +219,49 @@ def test_resume(tmp_path, monkeypatch):
     assert result.exit_code == 0
     assert not progress_path.exists()
     assert count['n'] == 2
+
+
+def test_focus_retry_success(monkeypatch):
+    class Bot:
+        def __init__(self):
+            self.calls = []
+            self.n = 0
+
+        def _focus(self):
+            self.calls.append('focus')
+            self.n += 1
+            if self.n < 2:
+                raise RuntimeError('focus fail')
+
+        def _paste(self, text, hit_enter=False):
+            self.calls.append(('paste', text, hit_enter))
+
+    bot = Bot()
+    monkeypatch.setattr(process_epub, 'read_response', lambda: 'ok')
+    tool = types.SimpleNamespace(check=lambda txt: [])
+    result = process_epub.ask_gpt(bot, 'f', 1, 1, 'chunk', tool, focus_retries=2)
+    assert result == 'ok'
+    assert bot.calls.count('focus') == 2
+    expected = process_epub.prompt_factory.build_user_prompt('f', 1, 1, 'chunk')
+    assert ('paste', expected, True) in bot.calls
+
+
+def test_focus_retry_failure(monkeypatch):
+    class Bot:
+        def __init__(self):
+            self.calls = []
+
+        def _focus(self):
+            self.calls.append('focus')
+            raise RuntimeError('no focus')
+
+        def _paste(self, text, hit_enter=False):
+            self.calls.append(('paste', text, hit_enter))
+
+    bot = Bot()
+    monkeypatch.setattr(process_epub, 'read_response', lambda: 'ok')
+    tool = types.SimpleNamespace(check=lambda txt: [])
+    with pytest.raises(RuntimeError):
+        process_epub.ask_gpt(bot, 'f', 1, 1, 'chunk', tool, focus_retries=2)
+    assert bot.calls.count('focus') == 2
+    assert all(c[0] != 'paste' for c in bot.calls if isinstance(c, tuple))
