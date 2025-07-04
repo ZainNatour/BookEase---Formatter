@@ -48,7 +48,7 @@ class DummyBot:
         DummyBot.instances.append(self)
 
     def bootstrap(self):
-        pass
+        self._paste(self.prompt, hit_enter=True)
 
     def _focus(self):
         pass
@@ -160,10 +160,10 @@ def test_process_epub(tmp_path, monkeypatch):
     assert text == '<HTML><BODY><P>HELLO WORLD.</P></BODY></HTML>'
 
     bot = DummyBot.instances[0]
-    assert bot.pastes[0] == 'SYS'
-    assert bot.pastes.count('SYS') == 1
-    assert calls['sys'] == 1
-    assert len([p for p in bot.pastes if p != 'SYS']) == len(calls['user'])
+    assert bot.pastes[0] == 'You are a helpful assistant.'
+    assert bot.pastes.count('You are a helpful assistant.') == 1
+    assert calls['sys'] == 0
+    assert len(bot.pastes) - 1 == len(calls['user'])
 
 
 def test_resume(tmp_path, monkeypatch):
