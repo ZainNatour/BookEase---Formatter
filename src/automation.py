@@ -87,6 +87,7 @@ def read_response(verbose: bool = False):
         import ui_capture
 
         ui_capture.click_copy_icon()
+        time.sleep(0.2)
         text = pyperclip.paste()
     except Exception as e:
         if verbose:
@@ -95,7 +96,11 @@ def read_response(verbose: bool = False):
     if not text:
         pag.hotkey("ctrl", "a")
         pag.hotkey("ctrl", "c")
+        time.sleep(0.2)
         text = pyperclip.paste()
+        if not text:
+            time.sleep(0.2)
+            text = pyperclip.paste()
 
     if not text:
         raise RuntimeError("Clipboard did not contain any text")
