@@ -117,6 +117,7 @@ def main(
 
     filenames: list[str] = []
     contents: dict[str, bytes] = {}
+    infos: dict[str, zipfile.ZipInfo] = {}
 
     total_failures = 0
     processed_chunks = 0
@@ -132,6 +133,7 @@ def main(
         for info in zin.infolist():
             name = info.filename
             filenames.append(name)
+            infos[name] = info
             data = zin.read(name)
             ext = Path(name).suffix.lower()
             if ext in {'.xhtml', '.opf', '.ncx', '.css'}:
@@ -178,19 +180,9 @@ def main(
             contents[name] = data
 
     with zipfile.ZipFile(output_path, 'w') as zout:
-        zout.writestr(
-            'mimetype',
-            'application/epub+zip',
-            compress_type=zipfile.ZIP_STORED,
-        )
         for name in filenames:
-            if name == 'mimetype':
-                continue
-            zout.writestr(
-                name,
-                contents[name],
-                compress_type=zipfile.ZIP_DEFLATED,
-            )
+            info = infos[name]
+            zout.writestr(info, contents[name], compress_type=info.compress_type)
 
     try:
         result = subprocess.run(
