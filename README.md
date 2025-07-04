@@ -36,12 +36,16 @@ python -m src.process_epub --input mybook.epub --output cleaned.epub
 
 ### Environment variables
 
-The application searches for the ChatGPT Desktop window titled `ChatGPT` and
-launches the executable from a default location. You can override these defaults
-with the following variables:
+The application searches for the ChatGPT Desktop window titled `ChatGPT` when it
+starts. The window title can later change as the conversation evolves, but
+BookEase remembers the initial window handle, so you don't need to keep the
+title constant. You can override the startup defaults with these variables:
 
 - `CHATGPT_EXE` – full path to `ChatGPT.exe`.
 - `CHATGPT_WINDOW_TITLE` – title of the ChatGPT window to focus on.
+
+BookEase will automatically start ChatGPT Desktop if it's not already
+running, so you can safely close the app between runs.
 
 ## Development workflow
 1. Take or open a Codex task for the change you want to make.
