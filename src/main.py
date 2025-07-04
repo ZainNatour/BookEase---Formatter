@@ -29,7 +29,7 @@ def choose_epub() -> None:
     if not out_path:
         return
 
-    process_epub.callback(in_path, out_path)
+    process_epub(in_path, out_path)
 
 
 def quit_program() -> None:
