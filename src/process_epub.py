@@ -12,6 +12,15 @@ from src.automation import ChatGPTAutomation, read_response
 import language_tool_python
 
 
+class GPTResult(str):
+    """String subclass that carries a failure flag."""
+
+    def __new__(cls, text: str, failed: bool = False):
+        obj = str.__new__(cls, text)
+        obj.failed = failed
+        return obj
+
+
 def ask_gpt(
     bot: ChatGPTAutomation,
     file_path: str,
@@ -22,7 +31,7 @@ def ask_gpt(
     focus_retries: int = 3,
     max_language_failures: int = 2,
     max_read_failures: int = 5,
-) -> str:
+) -> GPTResult:
     """Send a chunk to ChatGPT and validate the response with LanguageTool."""
     language_failures = 0
     read_failures = 0
@@ -44,7 +53,7 @@ def ask_gpt(
             read_failures += 1
             if read_failures >= max_read_failures:
                 logging.warning("Too many read_response failures")
-                return last_reply
+                return GPTResult(last_reply, failed=True)
             # Retry the prompt if clipboard retrieval failed
             continue
 
@@ -57,10 +66,10 @@ def ask_gpt(
             language_failures += 1
             if language_failures >= max_language_failures:
                 logging.warning("Too many language issues in reply")
-                return last_reply
+                return GPTResult(last_reply, failed=True)
             continue
 
-        return reply
+        return GPTResult(reply)
 
 
 @click.command()
@@ -71,8 +80,10 @@ def ask_gpt(
               help='Maximum LanguageTool failures before accepting the reply')
 @click.option('--max-read-failures', type=int, default=5, show_default=True,
               help='Maximum consecutive read_response failures before giving up')
+@click.option('--max-total-failures', type=int, default=10, show_default=True,
+              help='Maximum total GPT failures before stopping processing')
 def main(input_path: str, output_path: str, max_language_failures: int,
-         max_read_failures: int) -> None:
+         max_read_failures: int, max_total_failures: int) -> None:
     bot = ChatGPTAutomation("You are a helpful assistant.")
     bot.bootstrap()
     bot._paste(prompt_factory.build_system_prompt(), hit_enter=True)
@@ -80,6 +91,9 @@ def main(input_path: str, output_path: str, max_language_failures: int,
 
     filenames: list[str] = []
     contents: dict[str, bytes] = {}
+
+    total_failures = 0
+    processed_chunks = 0
 
     progress_path = Path(output_path).with_suffix('.progress.json')
     if progress_path.exists():
@@ -104,18 +118,24 @@ def main(input_path: str, output_path: str, max_language_failures: int,
                     if idx in done:
                         new_parts.append(chunk)
                         continue
-                    new_parts.append(
-                        ask_gpt(
-                            bot,
-                            name,
-                            idx + 1,
-                            total,
-                            chunk,
-                            tool,
-                            max_language_failures=max_language_failures,
-                            max_read_failures=max_read_failures,
-                        )
+                    result = ask_gpt(
+                        bot,
+                        name,
+                        idx + 1,
+                        total,
+                        chunk,
+                        tool,
+                        max_language_failures=max_language_failures,
+                        max_read_failures=max_read_failures,
                     )
+                    new_parts.append(result)
+                    processed_chunks += 1
+                    if getattr(result, 'failed', False):
+                        total_failures += 1
+                        if total_failures > max_total_failures:
+                            raise SystemExit(
+                                f"Maximum total failures exceeded after processing {processed_chunks} chunks"
+                            )
                     done.add(idx)
                     progress[name] = sorted(done)
                     with open(progress_path, 'w') as f:
