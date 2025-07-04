@@ -34,6 +34,15 @@ You can also run the CLI directly:
 python -m src.process_epub --input mybook.epub --output cleaned.epub
 ```
 
+### Environment variables
+
+The application searches for the ChatGPT Desktop window titled `ChatGPT` and
+launches the executable from a default location. You can override these defaults
+with the following variables:
+
+- `CHATGPT_EXE` – full path to `ChatGPT.exe`.
+- `CHATGPT_WINDOW_TITLE` – title of the ChatGPT window to focus on.
+
 ## Development workflow
 1. Take or open a Codex task for the change you want to make.
 2. Run `git pull` to ensure `main` is up to date.
