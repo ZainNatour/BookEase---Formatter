@@ -436,3 +436,41 @@ def test_non_utf8_entry(tmp_path, monkeypatch, caplog):
 
     with zipfile.ZipFile(out_path, 'r') as z:
         assert 'OEBPS/bad.xhtml' in z.namelist()
+
+
+def test_preserves_compression(tmp_path, monkeypatch):
+    in_path = tmp_path / "sample.epub"
+    out_path = tmp_path / "out.epub"
+    create_sample_epub(in_path)
+
+    DummyBot.instances.clear()
+    monkeypatch.setattr(process_epub, 'ChatGPTAutomation', DummyBot)
+    from langchain.text_splitter import CharacterTextSplitter
+    monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
+
+    monkeypatch.setattr(
+        process_epub,
+        'prompt_factory',
+        types.SimpleNamespace(
+            build_system_prompt=lambda: 'SYS',
+            build_user_prompt=lambda *a, **k: 'USER',
+        ),
+    )
+
+    monkeypatch.setattr(
+        process_epub,
+        'read_response',
+        lambda: DummyBot.instances[-1].last.upper(),
+    )
+
+    monkeypatch.setattr(
+        process_epub.subprocess, 'run', lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='', stderr='')
+    )
+
+    from click.testing import CliRunner
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--input', str(in_path), '--output', str(out_path)])
+    assert result.exit_code == 0
+
+    with zipfile.ZipFile(in_path, 'r') as zin, zipfile.ZipFile(out_path, 'r') as zout:
+        assert zin.getinfo('OEBPS/content.opf').compress_type == zout.getinfo('OEBPS/content.opf').compress_type
