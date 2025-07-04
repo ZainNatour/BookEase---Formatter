@@ -107,3 +107,20 @@ def test_paste(monkeypatch):
     assert ('hotkey', ('ctrl', 'v')) in calls
     assert ('press', 'enter') in calls
 
+
+def test_env_overrides(monkeypatch):
+    monkeypatch.setenv('CHATGPT_WINDOW_TITLE', 'Foo')
+    monkeypatch.setenv('CHATGPT_EXE', r'C:\Temp\ChatGPT.exe')
+
+    import importlib
+    import automation
+    monkeypatch.setattr(automation, 'pag', pyautogui_stub)
+    monkeypatch.setattr(automation, 'gw', pygetwindow_stub)
+    monkeypatch.setattr(automation, 'pyperclip', pyperclip_stub)
+
+    automation = importlib.reload(automation)
+    bot = automation.ChatGPTAutomation('prompt')
+
+    assert bot.window_title == 'Foo'
+    assert str(automation.CHATGPT_EXE) == os.path.expandvars(r'C:\Temp\ChatGPT.exe')
+

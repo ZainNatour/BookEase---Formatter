@@ -4,16 +4,28 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
-# Determine the location of the ChatGPT desktop executable. ``pathlib.Path``
-# does not provide ``expandvars`` like ``os.path`` does, so we expand the
-# environment variables in the string first and then create a ``Path`` object.
+# Determine the location of the ChatGPT desktop executable.
+# ``pathlib.Path`` does not provide ``expandvars`` like ``os.path`` does, so we
+# expand the environment variables in the string first and then create a
+# ``Path`` object. Users can override this path with the ``CHATGPT_EXE``
+# environment variable.
 CHATGPT_EXE = pathlib.Path(
-    r"C:\Users\ZBook\AppData\Local\Microsoft\WindowsApps\ChatGPT.exe"
+    os.path.expanduser(
+        os.path.expandvars(
+            os.environ.get(
+                "CHATGPT_EXE",
+                r"C:\Users\ZBook\AppData\Local\Microsoft\WindowsApps\ChatGPT.exe",
+            )
+        )
+    )
 )
+
+# Allow customising the ChatGPT window title via ``CHATGPT_WINDOW_TITLE``.
+DEFAULT_WINDOW_TITLE = os.environ.get("CHATGPT_WINDOW_TITLE", "ChatGPT")
 
 
 class ChatGPTAutomation:
-    def __init__(self, system_prompt: str, window_title="ChatGPT"):
+    def __init__(self, system_prompt: str, window_title: str = DEFAULT_WINDOW_TITLE):
         self.system_prompt = system_prompt
         self.window_title = window_title
 
