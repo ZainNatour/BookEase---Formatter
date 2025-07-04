@@ -18,11 +18,19 @@ def ask_gpt(
     total: int,
     chunk: str,
     tool: language_tool_python.LanguageTool,
+    focus_retries: int = 3,
 ) -> str:
     """Send a chunk to ChatGPT and validate the response with LanguageTool."""
     language_failures = 0
     while True:
-        bot._focus()
+        for attempt in range(focus_retries):
+            try:
+                bot._focus()
+            except Exception:
+                if attempt == focus_retries - 1:
+                    raise
+            else:
+                break
         user_msg = prompt_factory.build_user_prompt(file_path, chunk_id, total, chunk)
         bot._paste(user_msg, hit_enter=True)
         try:
