@@ -29,7 +29,7 @@ class DummySplitter:
         self.sep = separators[0]
 
     def split_text(self, text):
-        return [text]
+        yield text
 
 def stub_from_tiktoken_encoder(chunk_size=1500, chunk_overlap=200, separators=None):
     return DummySplitter(chunk_size, chunk_overlap, separators or ['</p>'])
@@ -181,8 +181,10 @@ def test_resume(tmp_path, monkeypatch):
     # Only split chapter.xhtml
     def split_conditional(txt):
         if txt.startswith('<html'):
-            return [txt[:10], txt[10:]]
-        return [txt]
+            yield txt[:10]
+            yield txt[10:]
+        else:
+            yield txt
 
     monkeypatch.setattr(process_epub, 'split_text', split_conditional)
 
@@ -343,7 +345,7 @@ def test_copies_response_per_chunk(tmp_path, monkeypatch):
             ext = Path(info.filename).suffix.lower()
             if ext in {'.xhtml', '.opf', '.ncx', '.css'}:
                 text = zin.read(info.filename).decode('utf-8')
-                expected += len(process_epub.split_text(text))
+                expected += sum(1 for _ in process_epub.split_text(text))
 
     from click.testing import CliRunner
     runner = CliRunner()

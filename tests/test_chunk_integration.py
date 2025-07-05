@@ -100,8 +100,10 @@ def test_chunk_count(tmp_path, monkeypatch):
     chunks = ['a', 'b', 'c']
     def stub_split(text):
         if text.startswith('<html'):
-            return list(chunks)
-        return [text]
+            for c in chunks:
+                yield c
+        else:
+            yield text
     monkeypatch.setattr(process_epub, 'split_text', stub_split)
 
     calls = []

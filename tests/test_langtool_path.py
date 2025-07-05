@@ -43,7 +43,7 @@ class DummySplitter:
     def __init__(self, chunk_size, chunk_overlap, separators):
         pass
     def split_text(self, text):
-        return [text]
+        yield text
 
 def stub_from_tiktoken_encoder(chunk_size=1500, chunk_overlap=200, separators=None):
     return DummySplitter(chunk_size, chunk_overlap, separators or ['</p>'])

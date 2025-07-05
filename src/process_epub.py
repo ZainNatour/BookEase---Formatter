@@ -161,9 +161,8 @@ def main(
                     text = data.decode('utf-8', errors='replace')
                 new_parts = []
                 done = set(progress.get(name, []))
-                chunks = list(split_text(text))
-                total = len(chunks)
-                for idx, chunk in enumerate(chunks):
+                total = sum(1 for _ in split_text(text))
+                for idx, chunk in enumerate(split_text(text)):
                     if idx in done:
                         new_parts.append(chunk)
                         continue
