@@ -511,3 +511,52 @@ def test_stop_on_login_required(tmp_path, monkeypatch):
 
     assert result.exit_code != 0
     assert 'login needed' in result.output.lower()
+
+
+def test_duplicate_entries_warn(tmp_path, monkeypatch, caplog):
+    in_path = tmp_path / "dup.epub"
+    out_path = tmp_path / "out.epub"
+    create_sample_epub(in_path)
+
+    # Add a duplicate file with the same name
+    with zipfile.ZipFile(in_path, "a") as z:
+        z.writestr(
+            "OEBPS/style.css",
+            "body { background: white; }",
+            compress_type=zipfile.ZIP_DEFLATED,
+        )
+
+    DummyBot.instances.clear()
+    monkeypatch.setattr(process_epub, 'ChatGPTAutomation', DummyBot)
+    from langchain.text_splitter import CharacterTextSplitter
+    monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
+
+    monkeypatch.setattr(
+        process_epub,
+        'prompt_factory',
+        types.SimpleNamespace(
+            build_system_prompt=lambda: 'SYS',
+            build_user_prompt=lambda *a, **k: 'USER',
+        ),
+    )
+
+    monkeypatch.setattr(
+        process_epub,
+        'read_response',
+        lambda: DummyBot.instances[-1].last.upper(),
+    )
+
+    monkeypatch.setattr(
+        process_epub.subprocess, 'run', lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='', stderr='')
+    )
+
+    from click.testing import CliRunner
+    runner = CliRunner()
+    with caplog.at_level(logging.WARNING):
+        result = runner.invoke(cli, ['--input', str(in_path), '--output', str(out_path)])
+    assert result.exit_code == 0
+    assert 'duplicate filename' in caplog.text.lower()
+
+    with zipfile.ZipFile(out_path, 'r') as z:
+        dup_names = [i.filename for i in z.infolist() if i.filename == 'OEBPS/style.css']
+    assert len(dup_names) == 2

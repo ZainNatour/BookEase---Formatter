@@ -122,8 +122,9 @@ def main(
         tool = language_tool_python.LanguageTool("en-US")
 
     filenames: list[str] = []
-    contents: dict[str, bytes] = {}
-    infos: dict[str, zipfile.ZipInfo] = {}
+    contents: dict[str, list[bytes]] = {}
+    infos: dict[str, list[zipfile.ZipInfo]] = {}
+    seen_names: set[str] = set()
 
     total_failures = 0
     processed_chunks = 0
@@ -139,7 +140,10 @@ def main(
         for info in zin.infolist():
             name = info.filename
             filenames.append(name)
-            infos[name] = info
+            if name in seen_names:
+                logging.warning("Duplicate filename encountered: %s", name)
+            else:
+                seen_names.add(name)
             data = zin.read(name)
             ext = Path(name).suffix.lower()
             if ext in {'.xhtml', '.opf', '.ncx', '.css'}:
@@ -186,12 +190,14 @@ def main(
                         json.dump(progress, f)
                 text = ''.join(new_parts)
                 data = text.encode('utf-8')
-            contents[name] = data
+            infos.setdefault(name, []).append(info)
+            contents.setdefault(name, []).append(data)
 
     with zipfile.ZipFile(output_path, 'w') as zout:
         for name in filenames:
-            info = infos[name]
-            zout.writestr(info, contents[name], compress_type=info.compress_type)
+            info = infos[name].pop(0)
+            data = contents[name].pop(0)
+            zout.writestr(info, data, compress_type=info.compress_type)
 
     try:
         result = subprocess.run(
