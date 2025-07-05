@@ -114,3 +114,39 @@ def test_read_failures_capped(monkeypatch, caplog):
     assert (
         "Too many read_response failures for file chunk 1/1" in caplog.text
     )
+
+
+def test_login_retry(monkeypatch):
+    bot = DummyBot()
+
+    calls = {'n': 0}
+
+    def maybe_login():
+        if calls['n'] == 0:
+            calls['n'] += 1
+            raise process_epub.LoginRequiredError('login')
+        return 'ok'
+
+    monkeypatch.setattr(process_epub, 'read_response', maybe_login)
+    import builtins
+    monkeypatch.setattr(builtins, 'input', lambda *a, **k: '')
+    tool = types.SimpleNamespace(check=lambda txt: [])
+
+    result = process_epub.ask_gpt(bot, 'f', 1, 1, 'prompt', tool)
+    assert result == 'ok'
+    assert calls['n'] == 1
+
+
+def test_login_quit(monkeypatch):
+    bot = DummyBot()
+    monkeypatch.setattr(
+        process_epub,
+        'read_response',
+        lambda: (_ for _ in ()).throw(process_epub.LoginRequiredError('login')),
+    )
+    import builtins
+    monkeypatch.setattr(builtins, 'input', lambda *a, **k: 'q')
+    tool = types.SimpleNamespace(check=lambda txt: [])
+
+    with pytest.raises(process_epub.LoginRequiredError):
+        process_epub.ask_gpt(bot, 'f', 1, 1, 'prompt', tool)

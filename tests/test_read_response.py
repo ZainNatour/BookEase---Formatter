@@ -75,7 +75,7 @@ def test_read_response(monkeypatch, icon_ret, empties, expected, hotkey_count):
     assert hotkeys == [('ctrl', 'a'), ('ctrl', 'c')] * (hotkey_count // 2)
 
 
-def test_read_response_login(monkeypatch):
+def test_read_response_login_quit(monkeypatch):
     hotkeys.clear()
     monkeypatch.setattr(automation, '_scroll_to_bottom', lambda: None)
     ui_stub = types.SimpleNamespace(
@@ -85,7 +85,32 @@ def test_read_response_login(monkeypatch):
     monkeypatch.setitem(sys.modules, 'ui_capture', ui_stub)
     monkeypatch.setitem(sys.modules, 'src.ui_capture', ui_stub)
     monkeypatch.setattr(pyperclip_stub, 'paste', lambda: '')
+    import builtins
+    monkeypatch.setattr(builtins, 'input', lambda *a, **k: 'q')
 
     with pytest.raises(automation.LoginRequiredError):
         automation.read_response()
+
+
+def test_read_response_login_retry(monkeypatch):
+    hotkeys.clear()
+    monkeypatch.setattr(automation, '_scroll_to_bottom', lambda: None)
+    login_states = [True, False]
+    ui_stub = types.SimpleNamespace(
+        click_copy_icon=lambda: False,
+        detect_login_screen=lambda: login_states.pop(0),
+    )
+    monkeypatch.setitem(sys.modules, 'ui_capture', ui_stub)
+    monkeypatch.setitem(sys.modules, 'src.ui_capture', ui_stub)
+    values = [''] * 5 + ['ok']
+
+    def fake_paste():
+        return values.pop(0)
+
+    monkeypatch.setattr(pyperclip_stub, 'paste', fake_paste)
+    import builtins
+    monkeypatch.setattr(builtins, 'input', lambda *a, **k: '')
+
+    result = automation.read_response()
+    assert result == 'ok'
 
