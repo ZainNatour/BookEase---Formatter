@@ -44,7 +44,7 @@ def test_html_paragraph_split(monkeypatch):
     )
 
     text = "<p>one</p><p>two</p>"
-    chunks = split_text(text, size=50, overlap=0)
+    chunks = list(split_text(text, size=50, overlap=0))
 
     assert len(chunks) == 2
     assert chunks[0].strip() == "<p>one</p>"
@@ -61,7 +61,7 @@ def test_nested_and_uppercase_tags(monkeypatch):
     )
 
     text = "<P>ONE <b>two <i>THREE</i></b></P><p>four</p>"
-    chunks = split_text(text, size=100, overlap=0)
+    chunks = list(split_text(text, size=100, overlap=0))
 
     assert chunks[0].strip() == "<P>ONE <b>two <i>THREE</i></b></P>"
     assert chunks[1].strip() == "<p>four</p>"
@@ -77,7 +77,7 @@ def test_overlap(monkeypatch):
     )
 
     text = "abcdefghi"
-    chunks = split_text(text, size=5, overlap=2)
+    chunks = list(split_text(text, size=5, overlap=2))
 
     # Ensure second chunk starts with the last 2 chars of the first chunk
     assert chunks[1].startswith(chunks[0][-2:])

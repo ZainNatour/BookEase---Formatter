@@ -39,26 +39,28 @@ class _ParagraphParser(HTMLParser):
             self._buf.append(data)
 
 
-def split_text(text: str, size: int = 1500, overlap: int = 200) -> list[str]:
-    """Split ``text`` into overlapping chunks without external dependencies."""
+from collections.abc import Iterator
+
+
+def split_text(text: str, size: int = 1500, overlap: int = 200) -> Iterator[str]:
+    """Yield ``text`` as overlapping chunks without building a list."""
 
     parser = _ParagraphParser()
     parser.feed(text)
     pieces = parser.paragraphs or [text]
 
-    chunks: list[str] = []
+    prev_chunk: str | None = None
     for piece in pieces:
         start = 0
         first = True
         while True:
             end = start + size
             chunk = piece[start:end]
-            if first and chunks and overlap > 0:
-                chunk = chunks[-1][-overlap:] + chunk
-            chunks.append(chunk)
+            if first and prev_chunk is not None and overlap > 0:
+                chunk = prev_chunk[-overlap:] + chunk
+            yield chunk
+            prev_chunk = chunk
             if end >= len(piece):
                 break
             start = end - overlap
             first = False
-
-    return chunks
