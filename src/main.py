@@ -8,6 +8,7 @@ from tkinter import filedialog
 
 from src.automation import ChatGPTAutomation
 from src.process_epub import main as process_epub
+from src import prompt_factory
 
 
 def choose_epub() -> None:
@@ -39,7 +40,7 @@ def quit_program() -> None:
 
 
 if __name__ == "__main__":
-    bot = ChatGPTAutomation("You are a helpful assistant.")
+    bot = ChatGPTAutomation(prompt_factory.build_system_prompt())
     bot.bootstrap()
 
     keyboard.add_hotkey("ctrl+shift+e", choose_epub)

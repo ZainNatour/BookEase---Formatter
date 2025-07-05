@@ -112,7 +112,7 @@ def main(
     max_total_failures: int,
 ) -> None:
     logging.basicConfig(level=logging.INFO)
-    bot = ChatGPTAutomation("You are a helpful assistant.")
+    bot = ChatGPTAutomation(prompt_factory.build_system_prompt())
     bot.bootstrap()
 
     lt_path = os.getenv("LANGTOOL_PATH")
