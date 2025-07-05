@@ -200,8 +200,18 @@ def read_response(verbose: bool = False):
             print(f"Login check failed: {e}", file=sys.stderr)
     else:
         if login:
-            raise LoginRequiredError(
-                "ChatGPT appears to be logged out; please sign in and retry"
+            prompt = (
+                "ChatGPT appears to be logged out. Log in and press Enter to "
+                "retry, or type 'q' to quit: "
             )
+            try:
+                ans = input(prompt)
+            except EOFError:
+                ans = "q"
+            if ans.strip().lower().startswith("q"):
+                raise LoginRequiredError(
+                    "ChatGPT appears to be logged out; please sign in and retry"
+                )
+            return read_response(verbose=verbose)
 
     raise RuntimeError("Clipboard remained empty after 5 attempts")

@@ -52,6 +52,15 @@ def ask_gpt(
         bot._paste(user_msg, hit_enter=True)
         try:
             reply = read_response()
+        except LoginRequiredError as e:
+            prompt = f"{e} Press Enter to retry or type 'q' to quit: "
+            try:
+                ans = input(prompt)
+            except EOFError:
+                ans = 'q'
+            if ans.strip().lower().startswith('q'):
+                raise
+            continue
         except RuntimeError:
             read_failures += 1
             if read_failures >= max_read_failures:
