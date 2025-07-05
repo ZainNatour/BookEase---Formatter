@@ -162,9 +162,9 @@ def test_process_epub(tmp_path, monkeypatch):
     assert text == '<P>HELLO WORLD.</P>'
 
     bot = DummyBot.instances[0]
-    assert bot.pastes[0] == 'You are a helpful assistant.'
-    assert bot.pastes.count('You are a helpful assistant.') == 1
-    assert calls['sys'] == 0
+    assert bot.pastes[0] == 'SYS'
+    assert bot.pastes.count('SYS') == 1
+    assert calls['sys'] == 1
     assert len(bot.pastes) - 1 == len(calls['user'])
 
 
@@ -511,3 +511,35 @@ def test_stop_on_login_required(tmp_path, monkeypatch):
 
     assert result.exit_code != 0
     assert 'login needed' in result.output.lower()
+
+
+def test_system_prompt_passed(tmp_path, monkeypatch):
+    in_path = tmp_path / "sample.epub"
+    out_path = tmp_path / "out.epub"
+    create_sample_epub(in_path)
+
+    captured = {}
+
+    class Bot(DummyBot):
+        def __init__(self, prompt, window_title="ChatGPT"):
+            super().__init__(prompt, window_title)
+            captured['prompt'] = prompt
+
+    monkeypatch.setattr(process_epub, 'ChatGPTAutomation', Bot)
+
+    from langchain.text_splitter import CharacterTextSplitter
+    monkeypatch.setattr(CharacterTextSplitter, 'from_tiktoken_encoder', stub_from_tiktoken_encoder)
+
+    monkeypatch.setattr(process_epub, 'ask_gpt', lambda *a, **k: 'ok')
+    monkeypatch.setattr(
+        process_epub.subprocess,
+        'run',
+        lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='', stderr='')
+    )
+
+    from click.testing import CliRunner
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--input', str(in_path), '--output', str(out_path)])
+
+    assert result.exit_code == 0
+    assert captured['prompt'] == process_epub.prompt_factory.build_system_prompt()
